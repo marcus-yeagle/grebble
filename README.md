@@ -13,21 +13,6 @@ Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated
 - **Dark Theme** — Space-themed UI with black backgrounds and electric blue accents
 - **Configurable** — Customize API endpoint, model selection, and system prompts
 
-## Screenshots
-
-### Basalt (Pebble Time)
-<p>
-<img src="screenshots/basalt-1.png" width="168" alt="Basalt - Welcome Screen" />
-<img src="screenshots/basalt-2.png" width="168" alt="Basalt - Chat Interface" />
-<img src="screenshots/basalt-3.png" width="168" alt="Basalt - Loading" />
-</p>
-
-### Diorite (Pebble 2)
-<p>
-<img src="screenshots/diorite-1.png" width="168" alt="Diorite - Welcome Screen" />
-<img src="screenshots/diorite-2.png" width="168" alt="Diorite - Chat Interface" />
-<img src="screenshots/diorite-3.png" width="168" alt="Diorite - Loading" />
-</p>
 
 ## Requirements
 
