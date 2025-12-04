@@ -1,0 +1,50 @@
+{
+  "name": "grok-for-pebble",
+  "author": "Open Source Community",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Grok",
+    "uuid": "a8b7c6d5-e4f3-42a1-b0c9-d8e7f6a5b4c3",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "capabilities": [
+      "configurable"
+    ],
+    "messageKeys": [
+      "REQUEST_CHAT",
+      "RESPONSE_TEXT",
+      "RESPONSE_END",
+      "READY_STATUS"
+    ],
+    "resources": {
+      "media": [
+        {
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "grok-icon.png",
+          "menuIcon": true
+        },
+        {
+          "type": "png",
+          "name": "ACTION_ICON_DICTATION",
+          "file": "action_bar_icons/dictation.png"
+        }
+      ]
+    }
+  }
+}

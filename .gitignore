@@ -1,2 +1,25 @@
+# Build outputs
 build/
-.lock-waf_linux_build
+*.pbw
+
+# Dependencies
+node_modules/
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+.devcontainer/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+
+# SDK cache
+.pebble-sdk/

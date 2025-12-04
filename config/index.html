@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grok for Pebble Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    h1 {
+      color: #00bfff;
+      margin-bottom: 5px;
+      font-size: 28px;
+    }
+
+    h1::before {
+      content: "✦ ";
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 30px;
+    }
+
+    a {
+      color: #00bfff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: #00bfff;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.1);
+    }
+
+    textarea {
+      font-family: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .hint a {
+      color: #00bfff;
+    }
+
+    .advanced-section {
+      display: none;
+      border-top: 1px solid #333;
+      padding-top: 20px;
+      margin-top: 20px;
+    }
+
+    .advanced-title {
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    #save-button {
+      background: linear-gradient(135deg, #00bfff 0%, #00a0d0 100%);
+      color: #000;
+    }
+
+    #save-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+    }
+
+    #reset-button {
+      background: #2a2a2a;
+      color: #888;
+      border: 1px solid #333;
+    }
+
+    #reset-button:hover {
+      background: #333;
+      color: #aaa;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo svg {
+      width: 60px;
+      height: 60px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="logo">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="45" stroke="#00bfff" stroke-width="2" fill="none"/>
+      <line x1="25" y1="25" x2="42" y2="42" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="75" y1="25" x2="58" y2="42" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="25" y1="75" x2="42" y2="58" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="75" y1="75" x2="58" y2="58" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="6" fill="#00bfff"/>
+    </svg>
+  </div>
+
+  <h1>Grok for Pebble</h1>
+  <p class="subtitle">
+    This app is unaffiliated with xAI and was made by independent developers as an 
+    <a href="https://github.com/yourusername/grok-for-pebble" target="_blank">open-source initiative</a>.
+  </p>
+
+  <div class="form-group">
+    <label for="api-key">xAI API Key</label>
+    <input type="text" id="api-key" placeholder="xai-...">
+    <div class="hint">Get your API key from <a href="https://x.ai/api" target="_blank">x.ai/api</a></div>
+  </div>
+
+  <div class="advanced-section" id="advanced-section">
+    <div class="advanced-title">Advanced Settings</div>
+
+    <div class="form-group">
+      <label for="base-url">Base URL</label>
+      <input type="text" id="base-url" placeholder="https://api.x.ai/v1/messages">
+      <div class="hint">Use <code>/v1/chat/completions</code> for OpenAI-compatible format</div>
+    </div>
+
+    <div class="form-group">
+      <label for="model">Model</label>
+      <input type="text" id="model" placeholder="grok-3-mini">
+      <div class="hint">Options: <code>grok-3-mini</code>, <code>grok-3</code>, <code>grok-4</code></div>
+    </div>
+
+    <div class="form-group">
+      <label for="system-message">System Message</label>
+      <textarea id="system-message" rows="4" placeholder="System message for Grok"></textarea>
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button id="save-button">Save</button>
+    <button id="reset-button">Reset</button>
+  </div>
+
+  <script src="config.js"></script>
+</body>
+</html>
+
