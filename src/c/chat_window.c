@@ -2,6 +2,7 @@
 #include "message_bubble.h"
 #include "chat_footer.h"
 #include "grok_pulse.h"
+#include "quick_reply.h"
 
 #define MAX_MESSAGES 10
 #define SCROLL_OFFSET 60
@@ -20,7 +21,10 @@ static ScrollLayer *s_scroll_layer;
 static Layer *s_content_layer;
 static Layer *s_action_button_layer;
 static ChatFooter *s_footer;
-static DictationSession *s_dictation_session;
+
+// Quick reply state
+static QuickReply *s_quick_reply = NULL;
+static bool s_quick_reply_mode = false;
 
 // Message storage (designed for dynamic updates)
 static Message s_messages[MAX_MESSAGES];
@@ -31,21 +35,25 @@ static MessageBubble *s_bubbles[MAX_MESSAGES];
 static int s_bubble_count = 0;
 
 static int s_content_width = 0;
+static int s_window_height = 0;
 
 // Chat state
 static bool s_waiting_for_response = false;
 
 // Forward declarations
 static void rebuild_scroll_content(void);
-static void dictation_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context);
 static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 static void send_chat_request(void);
 static void shift_messages(void);
+static void add_user_message(const char *text);
 static void add_assistant_message(const char *text);
 static void scroll_to_bottom(void);
 static void action_button_update_proc(Layer *layer, GContext *ctx);
+static void show_quick_reply(void);
+static void hide_quick_reply(void);
+static void send_quick_reply(void);
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -61,6 +69,7 @@ static void window_load(Window *window) {
 
   // Calculate content area
   s_content_width = bounds.size.w;
+  s_window_height = bounds.size.h;
   int status_bar_height = STATUS_BAR_LAYER_HEIGHT;
 
   // Create scroll layer (below status bar)
@@ -83,12 +92,9 @@ static void window_load(Window *window) {
   // Build the UI from message data
   rebuild_scroll_content();
 
-  // Start dictation session automatically when window loads
+  // Show quick reply selector automatically when window loads
   if (!s_waiting_for_response) {
-    s_dictation_session = dictation_session_create(sizeof(char) * 256, dictation_session_callback, NULL);
-    if (s_dictation_session) {
-      dictation_session_start(s_dictation_session);
-    }
+    show_quick_reply();
   }
 }
 
@@ -135,22 +141,27 @@ static void rebuild_scroll_content(void) {
     }
   }
 
-  // Add footer at the end
-  // Add top padding only if last message is from user
-  bool last_is_user = (s_message_count > 0) && s_messages[s_message_count - 1].is_user;
-  if (last_is_user) {
-    y_offset += 10;  // Add padding before footer
+  // Only show footer when there are messages or waiting for response
+  // This removes empty black space when chat is empty
+  bool show_footer = (s_message_count > 0) || s_waiting_for_response;
+  
+  if (show_footer) {
+    // Add top padding only if last message is from user
+    bool last_is_user = (s_message_count > 0) && s_messages[s_message_count - 1].is_user;
+    if (last_is_user) {
+      y_offset += 10;  // Add padding before footer
+    }
+
+    int footer_height = chat_footer_get_height(s_footer);
+    Layer *footer_layer = chat_footer_get_layer(s_footer);
+    GRect footer_frame = layer_get_frame(footer_layer);
+    footer_frame.origin.x = 0;
+    footer_frame.origin.y = y_offset;
+    layer_set_frame(footer_layer, footer_frame);
+    layer_add_child(s_content_layer, footer_layer);
+
+    y_offset += footer_height;
   }
-
-  int footer_height = chat_footer_get_height(s_footer);
-  Layer *footer_layer = chat_footer_get_layer(s_footer);
-  GRect footer_frame = layer_get_frame(footer_layer);
-  footer_frame.origin.x = 0;
-  footer_frame.origin.y = y_offset;
-  layer_set_frame(footer_layer, footer_frame);
-  layer_add_child(s_content_layer, footer_layer);
-
-  y_offset += footer_height;
 
   // Update content layer size
   GRect content_frame = layer_get_frame(s_content_layer);
@@ -259,52 +270,52 @@ static void send_chat_request(void) {
   }
 }
 
-static void dictation_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context) {
-  if (status == DictationSessionStatusSuccess && transcription) {
-    // Add the transcription as a user message
-    add_user_message(transcription);
-    scroll_to_bottom();
-
-    // Send chat request to JS
-    send_chat_request();
-  } else {
-    // Dictation was canceled or failed
-    // If there are no messages, return to welcome screen
-    if (s_message_count == 0) {
-      window_stack_pop(true);
-    }
-  }
-
-  // Clean up the dictation session
-  dictation_session_destroy(s_dictation_session);
-  s_dictation_session = NULL;
-}
-
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Scroll up
-  GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
-  offset.y += SCROLL_OFFSET;
-  scroll_layer_set_content_offset(s_scroll_layer, offset, true);
+  if (s_quick_reply_mode && s_quick_reply) {
+    // In quick reply mode: cycle to previous option
+    quick_reply_prev(s_quick_reply);
+  } else {
+    // Normal mode: scroll up
+    GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
+    offset.y += SCROLL_OFFSET;
+    scroll_layer_set_content_offset(s_scroll_layer, offset, true);
+  }
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Scroll down
-  GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
-  offset.y -= SCROLL_OFFSET;
-  scroll_layer_set_content_offset(s_scroll_layer, offset, true);
+  if (s_quick_reply_mode && s_quick_reply) {
+    // In quick reply mode: cycle to next option
+    quick_reply_next(s_quick_reply);
+  } else {
+    // Normal mode: scroll down
+    GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
+    offset.y -= SCROLL_OFFSET;
+    scroll_layer_set_content_offset(s_scroll_layer, offset, true);
+  }
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Don't allow dictation if waiting for response
+  // Don't allow input if waiting for response
   if (s_waiting_for_response) {
     return;
   }
 
-  // Start dictation session
-  s_dictation_session = dictation_session_create(sizeof(char) * 256, dictation_session_callback, NULL);
+  if (s_quick_reply_mode) {
+    // In quick reply mode: send selected message
+    send_quick_reply();
+  } else {
+    // Normal mode: show quick reply selector
+    show_quick_reply();
+  }
+}
 
-  if (s_dictation_session) {
-    dictation_session_start(s_dictation_session);
+static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (s_quick_reply_mode) {
+    // In quick reply mode: exit without sending
+    hide_quick_reply();
+  } else {
+    // Normal mode: exit app
+    window_stack_pop(true);
   }
 }
 
@@ -342,13 +353,80 @@ static void click_config_provider(void *context) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP, 100, up_click_handler);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 100, down_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_BACK, back_click_handler);
+}
+
+static void show_quick_reply(void) {
+  if (s_quick_reply_mode) {
+    return;  // Already showing
+  }
+
+  // Calculate fullscreen dimensions (below status bar)
+  int status_bar_height = STATUS_BAR_LAYER_HEIGHT;
+  int qr_height = s_window_height - status_bar_height;
+
+  // Create fullscreen quick reply overlay
+  s_quick_reply = quick_reply_create_fullscreen(s_content_width, qr_height);
+  if (!s_quick_reply) {
+    return;
+  }
+
+  // Position below status bar, filling the rest of the screen
+  Layer *qr_layer = quick_reply_get_layer(s_quick_reply);
+  GRect qr_frame = layer_get_frame(qr_layer);
+  qr_frame.origin.x = 0;
+  qr_frame.origin.y = status_bar_height;
+  layer_set_frame(qr_layer, qr_frame);
+
+  // Add to window (above scroll layer)
+  Layer *window_layer = window_get_root_layer(s_window);
+  layer_add_child(window_layer, qr_layer);
+
+  s_quick_reply_mode = true;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Quick reply mode enabled");
+}
+
+static void hide_quick_reply(void) {
+  if (!s_quick_reply_mode || !s_quick_reply) {
+    return;
+  }
+
+  // Remove and destroy quick reply
+  layer_remove_from_parent(quick_reply_get_layer(s_quick_reply));
+  quick_reply_destroy(s_quick_reply);
+  s_quick_reply = NULL;
+
+  s_quick_reply_mode = false;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Quick reply mode disabled");
+}
+
+static void send_quick_reply(void) {
+  if (!s_quick_reply_mode || !s_quick_reply) {
+    return;
+  }
+
+  // Get selected message
+  const char *message = quick_reply_get_selected(s_quick_reply);
+  if (!message) {
+    hide_quick_reply();
+    return;
+  }
+
+  // Hide the quick reply UI first
+  hide_quick_reply();
+
+  // Add as user message and send
+  add_user_message(message);
+  scroll_to_bottom();
+  send_chat_request();
 }
 
 static void window_unload(Window *window) {
-  // Clean up dictation session if still active
-  if (s_dictation_session) {
-    dictation_session_destroy(s_dictation_session);
-    s_dictation_session = NULL;
+  // Clean up quick reply if showing
+  if (s_quick_reply) {
+    quick_reply_destroy(s_quick_reply);
+    s_quick_reply = NULL;
+    s_quick_reply_mode = false;
   }
 
   // Destroy all bubbles
@@ -391,6 +469,23 @@ void chat_window_handle_inbox(DictionaryIterator *iterator) {
   // Handle incoming messages from JS
   Tuple *response_text_tuple = dict_find(iterator, MESSAGE_KEY_RESPONSE_TEXT);
   Tuple *response_end_tuple = dict_find(iterator, MESSAGE_KEY_RESPONSE_END);
+  Tuple *phone_msg_tuple = dict_find(iterator, MESSAGE_KEY_PHONE_MESSAGE);
+
+  // Handle phone message (typed on phone, sent to watch)
+  if (phone_msg_tuple) {
+    const char *text = phone_msg_tuple->value->cstring;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received PHONE_MESSAGE: %s", text);
+
+    // Hide quick reply if showing
+    if (s_quick_reply_mode) {
+      hide_quick_reply();
+    }
+
+    // Add as user message and send to Grok
+    add_user_message(text);
+    scroll_to_bottom();
+    send_chat_request();
+  }
 
   if (response_text_tuple) {
     // Received complete response text
@@ -433,9 +528,11 @@ void chat_window_set_footer_animating(bool animating) {
   }
 
   if (animating) {
+    // Rebuild content to ensure footer is visible for animation
+    rebuild_scroll_content();
+    scroll_to_bottom();
     chat_footer_start_animation(s_footer);
   } else {
     chat_footer_stop_animation(s_footer);
   }
 }
-

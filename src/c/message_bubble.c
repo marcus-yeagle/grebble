@@ -1,7 +1,7 @@
 #include "message_bubble.h"
 
-#define MESSAGE_PADDING 10
-#define MESSAGE_FONT FONT_KEY_GOTHIC_24_BOLD
+#define MESSAGE_PADDING 8
+#define MESSAGE_FONT FONT_KEY_GOTHIC_18_BOLD
 
 struct MessageBubble {
   Layer *layer;

@@ -29,7 +29,13 @@
       "REQUEST_CHAT",
       "RESPONSE_TEXT",
       "RESPONSE_END",
-      "READY_STATUS"
+      "READY_STATUS",
+      "PHONE_MESSAGE",
+      "CANNED_PROMPT_1",
+      "CANNED_PROMPT_2",
+      "CANNED_PROMPT_3",
+      "CANNED_PROMPT_4",
+      "CANNED_PROMPT_5"
     ],
     "resources": {
       "media": [
