@@ -7,10 +7,12 @@ Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated
 ## Features
 
 - **Voice Input** — Use Pebble's built-in voice dictation to send messages to Grok
-- **Real-time Streaming** — Receive responses from Grok as they're generated
+- **Quick Replies** — 5 customizable canned responses for when dictation isn't available (great for iOS!)
+- **Send from Phone** — Type messages directly from the settings page on your phone
+- **Real-time Responses** — Receive responses from Grok with live web search capability
 - **Conversation History** — Maintains context throughout your conversation with scrollable message history
 - **Animated Grok Pulse** — Features a pulsing X animation while waiting for responses
-- **Dark Theme** — Space-themed UI with black backgrounds and electric blue accents
+- **Dark Theme** — Clean black and white UI matching Grok's aesthetic
 - **Configurable** — Customize API endpoint, model selection, and system prompts
 
 
@@ -43,6 +45,7 @@ See [Building from Source](#building-from-source) below.
 
 ## Usage
 
+### Voice Dictation (Android)
 1. Launch the app on your Pebble
 2. Press the middle (select) button to start voice dictation
 3. Speak your message
@@ -50,14 +53,43 @@ See [Building from Source](#building-from-source) below.
 5. Scroll with up/down buttons to read the conversation
 6. Press select again to continue the conversation
 
+### Quick Replies (iOS & Android)
+On iOS, Pebble voice dictation is no longer available. Use Quick Replies instead:
+
+1. Launch the app on your Pebble
+2. Press the middle (select) button — a menu of 5 quick replies will appear
+3. Select a canned message to send to Grok
+4. Customize your quick replies in the phone settings (see below)
+
+### Send from Phone
+You can also type messages directly from your phone:
+
+1. Open the Pebble app on your phone
+2. Go to the Grok app settings
+3. Use the "Send Message" section to type a message
+4. Tap "Send to Watch" — the message will be sent to Grok and the response will appear on your watch
+
 ## Configuration Options
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | API Key | (required) | Your xAI API key from x.ai/api |
-| Base URL | `https://api.x.ai/v1/messages` | API endpoint. Use `/v1/chat/completions` for OpenAI-compatible format |
+| Base URL | `https://api.x.ai/v1/chat/completions` | API endpoint (OpenAI-compatible format) |
 | Model | `grok-3-mini` | Model to use. Options: `grok-3-mini`, `grok-3`, `grok-4` |
 | System Message | Pebble-optimized prompt | Customize Grok's behavior and personality |
+| Quick Reply 1-5 | See defaults below | Customizable canned messages for quick access |
+
+### Default Quick Replies
+
+| # | Default Message |
+|---|-----------------|
+| 1 | Hello |
+| 2 | What's the weather? |
+| 3 | Tell me a joke |
+| 4 | Thanks! |
+| 5 | Goodbye |
+
+You can customize these in the app settings to match your common queries (e.g., "How's the stock market?", "What's the news today?", "Set a reminder").
 
 ## Building from Source
 
@@ -110,8 +142,13 @@ The app automatically detects which format to use based on the URL.
 ### "No API key configured"
 Open the Pebble app on your phone, go to the Grok app settings, and enter your xAI API key.
 
-### Voice dictation not working
-Make sure Rebble services are properly configured on your phone. Voice dictation requires an active internet connection.
+### Voice dictation not working on iOS
+**This is expected.** Apple removed support for Pebble voice dictation years ago. Use the Quick Replies feature instead:
+- Press SELECT on the watch to see your 5 customizable quick reply options
+- Or type a message from the phone settings page using "Send to Watch"
+
+### Voice dictation not working on Android
+Make sure Rebble services are properly configured on your phone. Voice dictation requires an active internet connection and the Rebble voice service subscription.
 
 ### Responses are slow
 Grok models, especially `grok-4`, can take time to generate responses due to reasoning. Consider using `grok-3-mini` for faster responses.
