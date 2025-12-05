@@ -14,8 +14,6 @@ Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated
 - **Send from Phone** — Type messages directly from the settings page on your phone
 - **Real-time Responses** — Receive responses from Grok with live web search capability
 - **Conversation History** — Maintains context throughout your conversation with scrollable message history
-- **Animated Grok Pulse** — Features a pulsing X animation while waiting for responses
-- **Dark Theme** — Clean black and white UI matching Grok's aesthetic
 - **Configurable** — Customize API endpoint, model selection, and system prompts
 
 
