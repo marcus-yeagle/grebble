@@ -1,6 +1,10 @@
-<p align="center">
-  <img src="resources/grok-logo.png" alt="Grok Logo" width="80">
-</p>
+<table align="center" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td><img src="resources/grok-logo.png" alt="Grok Logo" height="64"></td>
+    <td width="60" align="center"><h1>+</h1></td>
+    <td><img src="resources/pebble-logo.svg" alt="Pebble Logo" height="64"></td>
+  </tr>
+</table>
 
 # Grok for Pebble
 
