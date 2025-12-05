@@ -31,7 +31,7 @@ function parseConversation(encoded) {
 }
 
 // Test configuration for emulator development (remove before production!)
-var TEST_API_KEY = '';
+var TEST_API_KEY = '[REDACTED-API-KEY]';
 var TEST_BASE_URL = 'https://api.x.ai/v1/chat/completions';
 var TEST_MODEL = 'grok-4-1-fast-reasoning';
 var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max.';
@@ -298,40 +298,57 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<meta name="viewport" content="width=device-width, initial-scale=1">' +
     '<title>Grok for Pebble Settings</title>' +
     '<style>' +
-    'body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }' +
-    'h1 { color: #00bfff; margin-bottom: 5px; }' +
-    'h2 { color: #00bfff; font-size: 18px; margin-top: 30px; margin-bottom: 15px; }' +
-    'p { color: #888; font-size: 14px; }' +
-    'a { color: #00bfff; }' +
-    '.form-group { margin-bottom: 20px; }' +
+    '* { box-sizing: border-box; }' +
+    'body { background: #000; color: #e5e5e5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; min-height: 100vh; }' +
+    '.header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }' +
+    '.logo { width: 36px; height: 36px; flex-shrink: 0; }' +
+    'h1 { color: #fff; margin: 0; font-size: 28px; font-weight: 600; }' +
+    'h2 { color: #fff; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; }' +
+    'p { color: #71717a; font-size: 14px; margin: 0; }' +
+    'a { color: #fff; text-decoration: underline; }' +
+    '.subtitle { margin-bottom: 24px; margin-top: 8px; }' +
+    '.section { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin-bottom: 16px; }' +
+    '.section-desc { color: #71717a; font-size: 14px; margin: 0 0 16px 0; }' +
+    '.form-group { margin-bottom: 16px; }' +
+    '.form-group:last-child { margin-bottom: 0; }' +
     '.form-group-small { margin-bottom: 12px; }' +
-    'label { display: block; color: #aaa; font-size: 14px; margin-bottom: 8px; }' +
-    'input, textarea { width: 100%; box-sizing: border-box; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; }' +
-    'input:focus, textarea:focus { border-color: #00bfff; outline: none; }' +
-    'textarea { font-family: monospace; resize: vertical; min-height: 100px; }' +
-    '.hint { font-size: 12px; color: #666; margin-top: 6px; }' +
-    '.section { border-top: 1px solid #333; padding-top: 20px; margin-top: 20px; }' +
+    'label { display: block; color: #a1a1aa; font-size: 13px; margin-bottom: 8px; font-weight: 500; }' +
+    'input, textarea { width: 100%; background: #09090b; border: 1px solid #27272a; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }' +
+    'input::placeholder, textarea::placeholder { color: #52525b; }' +
+    'input:focus, textarea:focus { border-color: #52525b; outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,0.05); }' +
+    'textarea { font-family: "SF Mono", Monaco, monospace; resize: vertical; min-height: 100px; }' +
+    '.hint { font-size: 12px; color: #52525b; margin-top: 6px; }' +
+    '.hint a { color: #a1a1aa; }' +
+    '.hint code { background: #27272a; padding: 2px 6px; border-radius: 4px; font-size: 11px; }' +
     '.advanced { display: none; }' +
-    '.buttons { margin-top: 20px; }' +
-    'button { padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; margin-right: 10px; margin-bottom: 10px; }' +
-    '#save { background: #00bfff; color: #000; }' +
-    '#reset { background: #333; color: #888; }' +
-    '#send-msg { background: #00bfff; color: #000; }' +
-    '.send-section { background: #111; border-radius: 12px; padding: 20px; margin-bottom: 30px; border: 1px solid #222; }' +
-    '.send-section h2 { margin-top: 0; }' +
-    '.quick-replies-section { background: #111; border-radius: 12px; padding: 20px; margin-bottom: 30px; border: 1px solid #222; }' +
-    '.quick-replies-section h2 { margin-top: 0; }' +
+    '.advanced-title { color: #52525b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; font-weight: 600; }' +
+    '.buttons { display: flex; gap: 10px; margin-top: 24px; }' +
+    'button { flex: 1; padding: 14px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s ease; }' +
+    '#save { background: #fff; color: #000; }' +
+    '#save:hover { background: #e5e5e5; }' +
+    '#save:active { background: #d4d4d4; transform: scale(0.98); }' +
+    '#reset { background: transparent; color: #a1a1aa; border: 1px solid #27272a; }' +
+    '#reset:hover { background: #18181b; color: #fff; border-color: #3f3f46; }' +
+    '#send-msg { background: #fff; color: #000; width: 100%; margin-top: 8px; }' +
+    '#send-msg:hover { background: #e5e5e5; }' +
+    '#send-msg:active { background: #d4d4d4; transform: scale(0.98); }' +
     '.prompt-input { padding: 10px; font-size: 13px; }' +
-    '.prompt-label { font-size: 12px; color: #666; margin-bottom: 4px; }' +
+    '.prompt-label { font-size: 12px; color: #52525b; margin-bottom: 4px; }' +
     '</style>' +
     '</head><body>' +
+    '<div class="header">' +
+    '<svg class="logo" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">' +
+    '<path fill="#fff" d="M59.95,93.59l45.05-33.3c2.21-1.63,5.37-1,6.42,1.54,5.54,13.37,3.06,29.44-7.96,40.48-11.02,11.03-26.35,13.45-40.37,7.94l-15.31,7.1c21.96,15.03,48.63,11.31,65.29-5.38,13.22-13.23,17.31-31.27,13.48-47.54l.03,.03c-5.55-23.9,1.36-33.45,15.53-52.98,.33-.46,.67-.93,1.01-1.4l-18.64,18.66v-.06L59.94,93.6"/>' +
+    '<path fill="#fff" d="M50.65,101.68c-15.76-15.07-13.04-38.4,.4-51.86,9.94-9.96,26.24-14.02,40.46-8.05l15.28-7.06c-2.75-1.99-6.28-4.13-10.33-5.64-18.29-7.54-40.2-3.79-55.07,11.09-14.3,14.32-18.8,36.34-11.08,55.13,5.77,14.04-3.69,23.98-13.22,34-3.38,3.55-6.76,7.11-9.49,10.87l43.03-38.48"/>' +
+    '</svg>' +
     '<h1>Grok for Pebble</h1>' +
-    '<p>Unaffiliated with xAI. Open-source project.</p>' +
+    '</div>' +
+    '<p class="subtitle">Unaffiliated with xAI. Open-source project.</p>' +
     
     // Send Message Section (iOS dictation workaround)
-    '<div class="send-section">' +
+    '<div class="section">' +
     '<h2>Send Message</h2>' +
-    '<p style="margin-bottom: 15px;">Type a message to send to Grok (useful if voice input is unavailable)</p>' +
+    '<p class="section-desc">Type a message to send to Grok (useful if voice input is unavailable)</p>' +
     '<div class="form-group">' +
     '<input type="text" id="phone-message" placeholder="Type your message here...">' +
     '</div>' +
@@ -339,9 +356,9 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '</div>' +
     
     // Quick Replies Section
-    '<div class="quick-replies-section">' +
+    '<div class="section">' +
     '<h2>Quick Replies</h2>' +
-    '<p style="margin-bottom: 15px;">Customize the 5 quick reply options available on your watch. Leave empty to use defaults.</p>' +
+    '<p class="section-desc">Customize the 5 quick reply options available on your watch. Leave empty to use defaults.</p>' +
     '<div class="form-group-small">' +
     '<label class="prompt-label">Quick Reply 1 (default: ' + defaultPrompts[0] + ')</label>' +
     '<input type="text" class="prompt-input" id="prompt-1" placeholder="' + defaultPrompts[0] + '" value="' + escapeHtml(cannedPrompts[0]) + '">' +
@@ -365,28 +382,36 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<div class="hint">These will be shown when dictation fails or when you press SELECT on the watch.</div>' +
     '</div>' +
     
-    // Settings Section
-    '<h2>Settings</h2>' +
+    // API Configuration Section
+    '<div class="section">' +
+    '<h2>API Configuration</h2>' +
+    '<p class="section-desc">Configure your xAI API access</p>' +
     '<div class="form-group">' +
     '<label>xAI API Key</label>' +
     '<input type="text" id="api-key" placeholder="xai-..." value="' + escapeHtml(apiKey) + '">' +
-    '<div class="hint">Get your API key from x.ai/api</div>' +
+    '<div class="hint">Get your API key from <a href="https://x.ai/api" target="_blank">x.ai/api</a></div>' +
     '</div>' +
-    '<div class="advanced" id="advanced">' +
+    '</div>' +
+    
+    // Advanced Settings Section
+    '<div class="section advanced" id="advanced">' +
+    '<div class="advanced-title">Advanced Settings</div>' +
     '<div class="form-group">' +
     '<label>Base URL</label>' +
     '<input type="text" id="base-url" value="' + escapeHtml(baseUrl || defaultBaseUrl) + '">' +
+    '<div class="hint">Use <code>/v1/chat/completions</code> for OpenAI-compatible format</div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>Model</label>' +
     '<input type="text" id="model" value="' + escapeHtml(model || defaultModel) + '">' +
-    '<div class="hint">Options: grok-3-mini, grok-3, grok-4</div>' +
+    '<div class="hint">Options: <code>grok-3-mini</code>, <code>grok-3</code>, <code>grok-4</code></div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>System Message</label>' +
     '<textarea id="system-message">' + escapeHtml(systemMessage || defaultSystem) + '</textarea>' +
     '</div>' +
     '</div>' +
+    
     '<div class="buttons">' +
     '<button id="save">Save Settings</button>' +
     '<button id="reset">Reset</button>' +
