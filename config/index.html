@@ -10,8 +10,8 @@
     }
     
     body {
-      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-      color: #e0e0e0;
+      background: #000;
+      color: #e5e5e5;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
       padding: 20px;
       max-width: 600px;
@@ -20,39 +20,62 @@
     }
 
     h1 {
-      color: #00bfff;
+      color: #fff;
       margin-bottom: 5px;
       font-size: 28px;
-    }
-
-    h1::before {
-      content: "✦ ";
+      font-weight: 600;
     }
 
     .subtitle {
-      color: #888;
+      color: #71717a;
       font-size: 14px;
       margin-top: 0;
       margin-bottom: 30px;
     }
 
     a {
-      color: #00bfff;
-      text-decoration: none;
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     a:hover {
-      text-decoration: underline;
+      color: #a1a1aa;
+    }
+
+    .section {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+
+    .section-description {
+      color: #71717a;
+      font-size: 14px;
+      margin: 0 0 16px 0;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
     }
 
     label {
       display: block;
-      color: #aaa;
-      font-size: 14px;
+      color: #a1a1aa;
+      font-size: 13px;
       margin-bottom: 8px;
       font-weight: 500;
     }
@@ -60,8 +83,8 @@
     input[type="text"],
     textarea {
       width: 100%;
-      background: #1a1a1a;
-      border: 1px solid #333;
+      background: #09090b;
+      border: 1px solid #27272a;
       color: #fff;
       padding: 12px;
       border-radius: 8px;
@@ -69,11 +92,16 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    input[type="text"]::placeholder,
+    textarea::placeholder {
+      color: #52525b;
+    }
+
     input[type="text"]:focus,
     textarea:focus {
-      border-color: #00bfff;
+      border-color: #52525b;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.1);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
     }
 
     textarea {
@@ -84,75 +112,91 @@
 
     .hint {
       font-size: 12px;
-      color: #666;
+      color: #52525b;
       margin-top: 6px;
     }
 
     .hint a {
-      color: #00bfff;
+      color: #a1a1aa;
+    }
+
+    .hint code {
+      background: #27272a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
     }
 
     .advanced-section {
       display: none;
-      border-top: 1px solid #333;
-      padding-top: 20px;
-      margin-top: 20px;
     }
 
     .advanced-title {
-      color: #666;
-      font-size: 12px;
+      color: #52525b;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      font-weight: 600;
     }
 
     .button-group {
       display: flex;
       gap: 10px;
-      margin-top: 30px;
+      margin-top: 24px;
     }
 
     button {
       flex: 1;
       padding: 14px 24px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       border: none;
     }
 
     #save-button {
-      background: linear-gradient(135deg, #00bfff 0%, #00a0d0 100%);
+      background: #fff;
       color: #000;
     }
 
     #save-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+      background: #e5e5e5;
+    }
+
+    #save-button:active {
+      background: #d4d4d4;
+      transform: scale(0.98);
     }
 
     #reset-button {
-      background: #2a2a2a;
-      color: #888;
-      border: 1px solid #333;
+      background: transparent;
+      color: #a1a1aa;
+      border: 1px solid #27272a;
     }
 
     #reset-button:hover {
-      background: #333;
-      color: #aaa;
+      background: #18181b;
+      color: #fff;
+      border-color: #3f3f46;
     }
 
     .logo {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
 
     .logo svg {
-      width: 60px;
-      height: 60px;
+      width: 48px;
+      height: 48px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #27272a;
+      margin: 16px 0;
     }
   </style>
 </head>
@@ -160,33 +204,74 @@
 <body>
   <div class="logo">
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="45" stroke="#00bfff" stroke-width="2" fill="none"/>
-      <line x1="25" y1="25" x2="42" y2="42" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="75" y1="25" x2="58" y2="42" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="25" y1="75" x2="42" y2="58" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="75" y1="75" x2="58" y2="58" stroke="#00bfff" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="50" cy="50" r="6" fill="#00bfff"/>
+      <circle cx="50" cy="50" r="45" stroke="#fff" stroke-width="2" fill="none"/>
+      <line x1="25" y1="25" x2="42" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="75" y1="25" x2="58" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="25" y1="75" x2="42" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="75" y1="75" x2="58" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="6" fill="#fff"/>
     </svg>
   </div>
 
   <h1>Grok for Pebble</h1>
-  <p class="subtitle">
-    This app is unaffiliated with xAI and was made by independent developers as an 
-    <a href="https://github.com/yourusername/grok-for-pebble" target="_blank">open-source initiative</a>.
-  </p>
+  <p class="subtitle">Unaffiliated with xAI. Open-source project.</p>
 
-  <div class="form-group">
-    <label for="api-key">xAI API Key</label>
-    <input type="text" id="api-key" placeholder="xai-...">
-    <div class="hint">Get your API key from <a href="https://x.ai/api" target="_blank">x.ai/api</a></div>
+  <div class="section">
+    <h2 class="section-title">Send Message</h2>
+    <p class="section-description">Type a message to send to Grok (useful if voice input is unavailable)</p>
+    <div class="form-group">
+      <input type="text" id="direct-message" placeholder="Type your message here...">
+    </div>
+    <button id="send-message-button" style="width: 100%; margin-top: 8px;">Send to Watch</button>
   </div>
 
-  <div class="advanced-section" id="advanced-section">
+  <div class="section">
+    <h2 class="section-title">Quick Replies</h2>
+    <p class="section-description">Customize the 5 quick reply options available on your watch. Leave empty to use defaults.</p>
+    
+    <div class="form-group">
+      <label for="quick-reply-1">Quick Reply 1 (default: Hello)</label>
+      <input type="text" id="quick-reply-1" placeholder="Hello">
+    </div>
+    
+    <div class="form-group">
+      <label for="quick-reply-2">Quick Reply 2 (default: What's the weather?)</label>
+      <input type="text" id="quick-reply-2" placeholder="What's the weather?">
+    </div>
+    
+    <div class="form-group">
+      <label for="quick-reply-3">Quick Reply 3 (default: Tell me a joke)</label>
+      <input type="text" id="quick-reply-3" placeholder="Tell me a joke">
+    </div>
+    
+    <div class="form-group">
+      <label for="quick-reply-4">Quick Reply 4 (default: What time is it?)</label>
+      <input type="text" id="quick-reply-4" placeholder="What time is it?">
+    </div>
+    
+    <div class="form-group">
+      <label for="quick-reply-5">Quick Reply 5 (default: Goodbye)</label>
+      <input type="text" id="quick-reply-5" placeholder="Goodbye">
+    </div>
+  </div>
+
+  <div class="section">
+    <h2 class="section-title">API Configuration</h2>
+    <p class="section-description">Configure your xAI API access</p>
+    
+    <div class="form-group">
+      <label for="api-key">xAI API Key</label>
+      <input type="text" id="api-key" placeholder="xai-...">
+      <div class="hint">Get your API key from <a href="https://x.ai/api" target="_blank">x.ai/api</a></div>
+    </div>
+  </div>
+
+  <div class="section advanced-section" id="advanced-section">
     <div class="advanced-title">Advanced Settings</div>
 
     <div class="form-group">
       <label for="base-url">Base URL</label>
-      <input type="text" id="base-url" placeholder="https://api.x.ai/v1/messages">
+      <input type="text" id="base-url" placeholder="https://api.x.ai/v1/chat/completions">
       <div class="hint">Use <code>/v1/chat/completions</code> for OpenAI-compatible format</div>
     </div>
 
@@ -203,11 +288,10 @@
   </div>
 
   <div class="button-group">
-    <button id="save-button">Save</button>
+    <button id="save-button">Save Settings</button>
     <button id="reset-button">Reset</button>
   </div>
 
   <script src="config.js"></script>
 </body>
 </html>
-
