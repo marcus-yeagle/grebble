@@ -1,10 +1,8 @@
 <p align="center">
-  <img src="resources/grok-logo.png" alt="Grok" height="48">
-  &nbsp;&nbsp;<b>+</b>&nbsp;&nbsp;
-  <img src="resources/pebble-logo.svg" alt="Pebble" height="48">
+  <img src="resources/grok-logo.png" alt="Grok" height="48" style="vertical-align: middle;">
+  &nbsp;&nbsp;<b style="vertical-align: middle;">+</b>&nbsp;&nbsp;
+  <img src="resources/pebble-logo.svg" alt="Pebble" height="48" style="vertical-align: middle;">
 </p>
-
-<h1 align="center"></h1>
 
 Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated with xAI and was made by independent developers as an open-source initiative.
 
