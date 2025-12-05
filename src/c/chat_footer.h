@@ -4,12 +4,10 @@
 /**
  * Chat Footer Component
  *
- * Displays a small Grok pulse icon with "Grok can make mistakes." disclaimer.
- * Shown at the bottom of the chat conversation.
- * Dark theme with subtle gray text.
+ * Displays a small Grok pulse icon at the bottom of the chat conversation.
+ * Shows animation while waiting for response.
+ * Dark theme styling.
  */
-
-#define CHAT_FOOTER_DISCLAIMER_TEXT "Grok\ncan make\nmistakes."
 
 typedef struct ChatFooter ChatFooter;
 
