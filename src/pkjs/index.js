@@ -31,7 +31,7 @@ function parseConversation(encoded) {
 }
 
 // Test configuration for emulator development (remove before production!)
-var TEST_API_KEY = 'xai-QwUktPXPPCMQcxr6WOtktn0ijvKnvCymRdCtOSua8ksAUQPtVdzQZ5UF64eIQJkKm4FYfrY4jNWPjpUV';
+var TEST_API_KEY = '';
 var TEST_BASE_URL = 'https://api.x.ai/v1/chat/completions';
 var TEST_MODEL = 'grok-4-1-fast-reasoning';
 var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max.';
