@@ -1,5 +1,5 @@
 /**
- * Grok for Pebble - Main Entry Point
+ * Grebble - Main Entry Point
  * 
  * A Pebble smartwatch client for chatting with Grok AI from xAI.
  * Features canned prompts and conversation history.
@@ -23,6 +23,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (ready_status_tuple) {
     int status = ready_status_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received READY_STATUS: %d", status);
+
+    // Mark quick reply as ready - phone has synced, show prompts instead of "Loading..."
+    quick_reply_set_ready(true);
 
     bool new_ready_state = (status == 1);
 
@@ -84,6 +87,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     quick_reply_set_prompt(4, prompt_tuple->value->cstring);
   }
 
+  // Refresh quick reply display if it's showing (updates from "Loading..." to prompts)
+  chat_window_refresh_quick_reply();
+
   // Forward other messages to chat window handler
   chat_window_handle_inbox(iterator);
 }
@@ -142,3 +148,4 @@ int main(void) {
   app_event_loop();
   prv_deinit();
 }
+

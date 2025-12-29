@@ -536,3 +536,9 @@ void chat_window_set_footer_animating(bool animating) {
     chat_footer_stop_animation(s_footer);
   }
 }
+
+void chat_window_refresh_quick_reply(void) {
+  if (s_quick_reply_mode && s_quick_reply) {
+    quick_reply_refresh(s_quick_reply);
+  }
+}

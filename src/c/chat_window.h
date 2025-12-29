@@ -33,3 +33,9 @@ void chat_window_set_footer_animating(bool animating);
  */
 void chat_window_handle_inbox(DictionaryIterator *iterator);
 
+/**
+ * Refresh the quick reply display if it's currently showing.
+ * Call this after prompts have been loaded from the phone.
+ */
+void chat_window_refresh_quick_reply(void);
+

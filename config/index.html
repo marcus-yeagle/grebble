@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Grok for Pebble Settings</title>
+  <title>Grebble Settings</title>
   <style>
     * {
       box-sizing: border-box;
@@ -183,14 +183,29 @@
       border-color: #3f3f46;
     }
 
-    .logo {
-      text-align: center;
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
       margin-bottom: 24px;
+    }
+
+    .logo {
+      flex-shrink: 0;
     }
 
     .logo svg {
       width: 48px;
       height: 48px;
+      display: block;
+    }
+
+    .header-text h1 {
+      margin: 0 0 4px 0;
+    }
+
+    .header-text .subtitle {
+      margin: 0;
     }
 
     .divider {
@@ -202,19 +217,22 @@
 </head>
 
 <body>
-  <div class="logo">
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="45" stroke="#fff" stroke-width="2" fill="none"/>
-      <line x1="25" y1="25" x2="42" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="75" y1="25" x2="58" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="25" y1="75" x2="42" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-      <line x1="75" y1="75" x2="58" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="50" cy="50" r="6" fill="#fff"/>
-    </svg>
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="45" stroke="#fff" stroke-width="2" fill="none"/>
+        <line x1="25" y1="25" x2="42" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <line x1="75" y1="25" x2="58" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <line x1="25" y1="75" x2="42" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <line x1="75" y1="75" x2="58" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="6" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>rebble (Grok + Pebble)</h1>
+      <p class="subtitle">Unaffiliated with xAI. Open-source project.</p>
+    </div>
   </div>
-
-  <h1>Grok for Pebble</h1>
-  <p class="subtitle">Unaffiliated with xAI. Open-source project.</p>
 
   <div class="section">
     <h2 class="section-title">Send Message</h2>

@@ -18,6 +18,7 @@ static const char* s_default_prompts[] = {
 // Custom prompts storage (configurable from phone settings)
 static char s_custom_prompts[NUM_CANNED_PROMPTS][MAX_PROMPT_LENGTH];
 static bool s_prompts_initialized = false;
+static bool s_prompts_ready = false;  // True when phone has synced prompts
 
 struct QuickReply {
   Layer *layer;
@@ -70,6 +71,12 @@ static const char* get_prompt_at_index(int index) {
 
 static void update_text_display(QuickReply *qr) {
   if (!qr || !qr->text_layer) return;
+  
+  // Show loading state if prompts haven't been synced from phone yet
+  if (!s_prompts_ready) {
+    text_layer_set_text(qr->text_layer, "Loading...");
+    return;
+  }
   
   const char *prompt = get_prompt_at_index(qr->current_index);
   text_layer_set_text(qr->text_layer, prompt ? prompt : "");
@@ -212,5 +219,20 @@ void quick_reply_set_prompt(int index, const char *prompt) {
 
 const char* quick_reply_get_prompt(int index) {
   return get_prompt_at_index(index);
+}
+
+void quick_reply_set_ready(bool ready) {
+  s_prompts_ready = ready;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Quick reply ready state: %s", ready ? "true" : "false");
+}
+
+bool quick_reply_is_ready(void) {
+  return s_prompts_ready;
+}
+
+void quick_reply_refresh(QuickReply *qr) {
+  if (!qr) return;
+  update_text_display(qr);
+  layer_mark_dirty(qr->layer);
 }
 
