@@ -105,3 +105,23 @@ void quick_reply_init(void);
  */
 const char* quick_reply_get_prompt(int index);
 
+/**
+ * Set whether prompts are ready (received from phone).
+ * While not ready, shows "Loading..." instead of prompts.
+ * @param ready true when phone has synced, false during loading
+ */
+void quick_reply_set_ready(bool ready);
+
+/**
+ * Check if prompts are ready to display.
+ * @return true if ready, false if still loading
+ */
+bool quick_reply_is_ready(void);
+
+/**
+ * Refresh the display of a quick reply component.
+ * Call this after prompts have been loaded to update "Loading..." to actual prompts.
+ * @param qr The quick reply component to refresh (can be NULL)
+ */
+void quick_reply_refresh(QuickReply *qr);
+

@@ -4,6 +4,8 @@
   <img src="resources/pebble-logo.svg" alt="Pebble" height="48" style="vertical-align: middle;">
 </p>
 
+# Grebble
+
 Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated with xAI and was made by independent developers as an open-source initiative.
 
 
@@ -29,7 +31,7 @@ Chat with Grok AI directly from your Pebble smartwatch. This app is unaffiliated
 *(Coming soon)*
 
 ### Option 2: Sideload
-1. Download the latest `.pbw` file from the [Releases](https://github.com/yourusername/grok-for-pebble/releases) page
+1. Download the latest `.pbw` file from the [Releases](https://github.com/yourusername/grebble/releases) page
 2. Open the file on your phone with the Pebble app installed
 3. The app will be installed on your watch
 
@@ -40,7 +42,7 @@ See [Building from Source](#building-from-source) below.
 
 1. Install the app on your Pebble watch
 2. Open the Pebble app on your phone
-3. Go to the app settings for "Grok"
+3. Go to the app settings for "Grebble"
 4. Enter your xAI API key
 5. (Optional) Configure model and system message
 
@@ -66,7 +68,7 @@ On iOS, Pebble voice dictation is no longer available. Use Quick Replies instead
 You can also type messages directly from your phone:
 
 1. Open the Pebble app on your phone
-2. Go to the Grok app settings
+2. Go to the Grebble app settings
 3. Use the "Send Message" section to type a message
 4. Tap "Send to Watch" — the message will be sent to Grok and the response will appear on your watch
 
@@ -101,8 +103,8 @@ You can customize these in the app settings to match your common queries (e.g., 
 ### Build Steps
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/grok-for-pebble.git
-cd grok-for-pebble
+git clone https://github.com/yourusername/grebble.git
+cd grebble
 
 # Install dependencies
 npm install
@@ -141,7 +143,7 @@ The app automatically detects which format to use based on the URL.
 ## Troubleshooting
 
 ### "No API key configured"
-Open the Pebble app on your phone, go to the Grok app settings, and enter your xAI API key.
+Open the Pebble app on your phone, go to the Grebble app settings, and enter your xAI API key.
 
 ### Voice dictation not working on iOS
 **This is expected.** Apple removed support for Pebble voice dictation years ago. Use the Quick Replies feature instead:
@@ -180,4 +182,3 @@ This project is licensed under the Unlicense - see the [LICENSE](LICENSE) file f
 ## Disclaimer
 
 This app is not affiliated with, endorsed by, or sponsored by xAI. "Grok" and the xAI name are trademarks of xAI. This is an independent, open-source project created by enthusiasts.
-

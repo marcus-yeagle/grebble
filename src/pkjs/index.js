@@ -1,5 +1,5 @@
 /**
- * Grok for Pebble - Phone-side JavaScript
+ * Grebble - Phone-side JavaScript
  * 
  * Handles API communication with xAI's Grok API and
  * configuration management.
@@ -191,7 +191,7 @@ function sendReadyStatus() {
 }
 
 Pebble.addEventListener('ready', function () {
-  console.log('PebbleKit JS ready - Grok for Pebble');
+  console.log('PebbleKit JS ready - Grebble');
   sendReadyStatus();
 });
 
@@ -296,7 +296,7 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
   var html = '<!DOCTYPE html><html><head>' +
     '<meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-    '<title>Grok for Pebble Settings</title>' +
+    '<title>Grebble Settings</title>' +
     '<style>' +
     '* { box-sizing: border-box; }' +
     'body { background: #000; color: #e5e5e5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; min-height: 100vh; }' +
@@ -341,7 +341,7 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<path fill="#fff" d="M59.95,93.59l45.05-33.3c2.21-1.63,5.37-1,6.42,1.54,5.54,13.37,3.06,29.44-7.96,40.48-11.02,11.03-26.35,13.45-40.37,7.94l-15.31,7.1c21.96,15.03,48.63,11.31,65.29-5.38,13.22-13.23,17.31-31.27,13.48-47.54l.03,.03c-5.55-23.9,1.36-33.45,15.53-52.98,.33-.46,.67-.93,1.01-1.4l-18.64,18.66v-.06L59.94,93.6"/>' +
     '<path fill="#fff" d="M50.65,101.68c-15.76-15.07-13.04-38.4,.4-51.86,9.94-9.96,26.24-14.02,40.46-8.05l15.28-7.06c-2.75-1.99-6.28-4.13-10.33-5.64-18.29-7.54-40.2-3.79-55.07,11.09-14.3,14.32-18.8,36.34-11.08,55.13,5.77,14.04-3.69,23.98-13.22,34-3.38,3.55-6.76,7.11-9.49,10.87l43.03-38.48"/>' +
     '</svg>' +
-    '<h1>Grok for Pebble</h1>' +
+    '<h1>Grebble</h1>' +
     '</div>' +
     '<p class="subtitle">Unaffiliated with xAI. Open-source project.</p>' +
     
