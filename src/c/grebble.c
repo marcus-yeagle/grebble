@@ -119,8 +119,36 @@ static void prv_init(void) {
   app_message_register_outbox_failed(outbox_failed_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
 
-  // Open AppMessage with large inbox (for history) and large outbox (for chunks)
-  app_message_open(4096, 4096);
+  // Open AppMessage.
+  //
+  // Aplite (original Pebble/Pebble Steel) has a much smaller memory budget than
+  // later platforms; using very large AppMessage buffers can fail, which then
+  // causes the phone-side READY_STATUS send to NACK.
+  AppMessageResult open_result = APP_MSG_OK;
+  uint32_t inbox_size = 2048;
+  uint32_t outbox_size = 2048;
+
+#ifdef PBL_PLATFORM_APLITE
+  inbox_size = 512;
+  outbox_size = 512;
+#endif
+
+  open_result = app_message_open(inbox_size, outbox_size);
+  APP_LOG(open_result == APP_MSG_OK ? APP_LOG_LEVEL_DEBUG : APP_LOG_LEVEL_ERROR,
+          "app_message_open(in=%lu,out=%lu) => %d",
+          (unsigned long)inbox_size, (unsigned long)outbox_size, (int)open_result);
+
+#ifdef PBL_PLATFORM_APLITE
+  // If this still fails on aplite, retry with a smaller size to keep the app usable.
+  if (open_result != APP_MSG_OK) {
+    inbox_size = 256;
+    outbox_size = 256;
+    open_result = app_message_open(inbox_size, outbox_size);
+    APP_LOG(open_result == APP_MSG_OK ? APP_LOG_LEVEL_DEBUG : APP_LOG_LEVEL_ERROR,
+            "app_message_open(in=%lu,out=%lu) => %d",
+            (unsigned long)inbox_size, (unsigned long)outbox_size, (int)open_result);
+  }
+#endif
 
   // Go directly to chat window with quick reply selector
   s_chat_window = chat_window_create();
