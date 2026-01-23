@@ -7,6 +7,30 @@
  * Uses the Anthropic-compatible endpoint for easier migration.
  */
 
+// PebbleKit JS (older SDK runtimes) may not provide `fetch`. The debug-mode
+// instrumentation below uses fetch() as required, so we polyfill it using XHR.
+if (typeof fetch !== 'function') {
+  // eslint-disable-next-line no-var
+  var fetch = function (url, options) {
+    try {
+      options = options || {};
+      var xhr = new XMLHttpRequest();
+      xhr.open(options.method || 'GET', url, true);
+      if (options.headers) {
+        for (var k in options.headers) {
+          if (Object.prototype.hasOwnProperty.call(options.headers, k)) {
+            xhr.setRequestHeader(k, options.headers[k]);
+          }
+        }
+      }
+      xhr.send(options.body || null);
+    } catch (e) {
+      // swallow
+    }
+    return { catch: function () {} };
+  };
+}
+
 // Parse encoded conversation string "[U]msg1[A]msg2..." into messages array
 function parseConversation(encoded) {
   var messages = [];
@@ -63,6 +87,9 @@ function getGrokResponse(messages) {
   xhr.timeout = 30000;
 
   xhr.onload = function () {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4',location:'src/pkjs/index.js:xhr.onload',message:'Grok API response received',data:{status:xhr.status,respLen:(xhr.responseText||'').length,baseUrlIsOpenAI:isOpenAIFormat},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (xhr.status === 200) {
       try {
         var data = JSON.parse(xhr.responseText);
@@ -87,7 +114,15 @@ function getGrokResponse(messages) {
 
         if (responseText.length > 0) {
           console.log('Sending response: ' + responseText);
-          Pebble.sendAppMessage({ 'RESPONSE_TEXT': responseText });
+          Pebble.sendAppMessage(
+            { 'RESPONSE_TEXT': responseText },
+            function () {},
+            function (e) {
+              // #region agent log
+              fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'src/pkjs/index.js:sendAppMessage(RESPONSE_TEXT):failure',message:'RESPONSE_TEXT failed to deliver to watch',data:{responseLen:responseText.length,error:(e&&e.error)?{message:e.error.message,code:e.error.code}:null},timestamp:Date.now()})}).catch(()=>{});
+              // #endregion
+            }
+          );
         } else {
           console.log('No text in response');
           Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'No response from Grok' });
@@ -123,12 +158,18 @@ function getGrokResponse(messages) {
 
   xhr.onerror = function () {
     console.log('Network error');
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4',location:'src/pkjs/index.js:xhr.onerror',message:'Grok API network error',data:{baseUrl:(baseUrl||'').substring(0,80)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'Network error occurred' });
     Pebble.sendAppMessage({ 'RESPONSE_END': 1 });
   };
 
   xhr.ontimeout = function () {
     console.log('Request timeout');
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4',location:'src/pkjs/index.js:xhr.ontimeout',message:'Grok API request timeout',data:{timeoutMs:xhr.timeout,baseUrl:(baseUrl||'').substring(0,80)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'Request timed out. Please try again.' });
     Pebble.sendAppMessage({ 'RESPONSE_END': 1 });
   };
@@ -186,12 +227,36 @@ function sendReadyStatus() {
       message['CANNED_PROMPT_' + i] = prompt.trim();
     }
   }
-  
-  Pebble.sendAppMessage(message);
+
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'src/pkjs/index.js:sendReadyStatus',message:'Sending READY_STATUS to watch',data:{isReady:isReady,keys:Object.keys(message).length},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
+  Pebble.sendAppMessage(
+    message,
+    function () {},
+    function (e) {
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'src/pkjs/index.js:sendAppMessage(READY_STATUS):failure',message:'READY_STATUS failed to deliver to watch',data:{isReady:isReady,error:(e&&e.error)?{message:e.error.message,code:e.error.code}:null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
+  );
 }
 
 Pebble.addEventListener('ready', function () {
   console.log('PebbleKit JS ready - Grebble');
+  var watchInfo = null;
+  try {
+    if (Pebble.getActiveWatchInfo) {
+      watchInfo = Pebble.getActiveWatchInfo();
+    }
+  } catch (e) {
+    watchInfo = { error: '' + e };
+  }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'src/pkjs/index.js:ready',message:'PebbleKit JS ready fired',data:{hasLocalStorage:typeof localStorage!=='undefined',hasFetch:typeof fetch==='function',watchInfo:watchInfo},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   sendReadyStatus();
 });
 
@@ -201,6 +266,10 @@ Pebble.addEventListener('appmessage', function (e) {
   if (e.payload.REQUEST_CHAT) {
     var encoded = e.payload.REQUEST_CHAT;
     console.log('REQUEST_CHAT received: ' + encoded);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/3d3415d5-02b7-4cb3-8e49-bea855146955',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H3',location:'src/pkjs/index.js:appmessage',message:'REQUEST_CHAT received from watch',data:{encodedLen:(encoded||'').length,payloadKeys:e&&e.payload?Object.keys(e.payload):[]},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     var messages = parseConversation(encoded);
     console.log('Parsed ' + messages.length + ' messages');

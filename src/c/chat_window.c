@@ -4,13 +4,21 @@
 #include "grok_pulse.h"
 #include "quick_reply.h"
 
-#define MAX_MESSAGES 10
+#ifdef PBL_PLATFORM_APLITE
+  #define MAX_MESSAGES 6
+  #define MESSAGE_TEXT_MAX 256
+  #define MESSAGE_BUFFER_SIZE 1024
+#else
+  #define MAX_MESSAGES 10
+  #define MESSAGE_TEXT_MAX 512
+  #define MESSAGE_BUFFER_SIZE 4096
+#endif
+
 #define SCROLL_OFFSET 60
-#define MESSAGE_BUFFER_SIZE 4096
 
 // Message data structure
 typedef struct {
-  char text[512];
+  char text[MESSAGE_TEXT_MAX];
   bool is_user;
 } Message;
 
