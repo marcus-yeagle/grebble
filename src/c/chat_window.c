@@ -7,11 +7,13 @@
 #ifdef PBL_PLATFORM_APLITE
   #define MAX_MESSAGES 6
   #define MESSAGE_TEXT_MAX 256
-  #define MESSAGE_BUFFER_SIZE 1024
+  // Must fit within AppMessage outbox (512 bytes on Aplite) minus ~64 bytes dict overhead
+  #define MESSAGE_BUFFER_SIZE 448
 #else
   #define MAX_MESSAGES 10
   #define MESSAGE_TEXT_MAX 512
-  #define MESSAGE_BUFFER_SIZE 4096
+  // Must fit within AppMessage outbox (2048 bytes) minus ~64 bytes dict overhead
+  #define MESSAGE_BUFFER_SIZE 1984
 #endif
 
 #define SCROLL_OFFSET 60
