@@ -4,13 +4,23 @@
 #include "grok_pulse.h"
 #include "quick_reply.h"
 
-#define MAX_MESSAGES 10
+#ifdef PBL_PLATFORM_APLITE
+  #define MAX_MESSAGES 6
+  #define MESSAGE_TEXT_MAX 256
+  // Must fit within AppMessage outbox (512 bytes on Aplite) minus ~64 bytes dict overhead
+  #define MESSAGE_BUFFER_SIZE 448
+#else
+  #define MAX_MESSAGES 10
+  #define MESSAGE_TEXT_MAX 512
+  // Must fit within AppMessage outbox (2048 bytes) minus ~64 bytes dict overhead
+  #define MESSAGE_BUFFER_SIZE 1984
+#endif
+
 #define SCROLL_OFFSET 60
-#define MESSAGE_BUFFER_SIZE 4096
 
 // Message data structure
 typedef struct {
-  char text[512];
+  char text[MESSAGE_TEXT_MAX];
   bool is_user;
 } Message;
 
