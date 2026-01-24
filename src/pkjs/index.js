@@ -7,6 +7,30 @@
  * Uses the Anthropic-compatible endpoint for easier migration.
  */
 
+// PebbleKit JS (older SDK runtimes) may not provide `fetch`. The debug-mode
+// instrumentation below uses fetch() as required, so we polyfill it using XHR.
+if (typeof fetch !== 'function') {
+  // eslint-disable-next-line no-var
+  var fetch = function (url, options) {
+    try {
+      options = options || {};
+      var xhr = new XMLHttpRequest();
+      xhr.open(options.method || 'GET', url, true);
+      if (options.headers) {
+        for (var k in options.headers) {
+          if (Object.prototype.hasOwnProperty.call(options.headers, k)) {
+            xhr.setRequestHeader(k, options.headers[k]);
+          }
+        }
+      }
+      xhr.send(options.body || null);
+    } catch (e) {
+      // swallow
+    }
+    return { catch: function () {} };
+  };
+}
+
 // Parse encoded conversation string "[U]msg1[A]msg2..." into messages array
 function parseConversation(encoded) {
   var messages = [];
@@ -87,7 +111,11 @@ function getGrokResponse(messages) {
 
         if (responseText.length > 0) {
           console.log('Sending response: ' + responseText);
-          Pebble.sendAppMessage({ 'RESPONSE_TEXT': responseText });
+          Pebble.sendAppMessage(
+            { 'RESPONSE_TEXT': responseText },
+            function () {},
+            function (e) {}
+          );
         } else {
           console.log('No text in response');
           Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'No response from Grok' });
@@ -186,12 +214,25 @@ function sendReadyStatus() {
       message['CANNED_PROMPT_' + i] = prompt.trim();
     }
   }
-  
-  Pebble.sendAppMessage(message);
+
+  Pebble.sendAppMessage(
+    message,
+    function () {},
+    function (e) {}
+  );
 }
 
 Pebble.addEventListener('ready', function () {
   console.log('PebbleKit JS ready - Grebble');
+  var watchInfo = null;
+  try {
+    if (Pebble.getActiveWatchInfo) {
+      watchInfo = Pebble.getActiveWatchInfo();
+    }
+  } catch (e) {
+    watchInfo = { error: '' + e };
+  }
+
   sendReadyStatus();
 });
 
