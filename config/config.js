@@ -13,8 +13,8 @@ function getQueryParam(param) {
 
 // Default values
 var defaults = {
-  base_url: 'https://api.x.ai/v1/messages',
-  model: 'grok-3-mini',
+  base_url: 'https://api.x.ai/v1/responses',
+  model: 'grok-4-1-fast',
   system_message: "You are Grok, a helpful and maximally truth-seeking AI built by xAI. You're running on a Pebble smartwatch. Please respond in plain text without any formatting, keeping your responses within 1-3 sentences. Be witty and concise."
 };
 
