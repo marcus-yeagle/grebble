@@ -12,6 +12,8 @@ function getQueryParam(param) {
 }
 
 // Default values
+// Must use /v1/responses with Agent Tools for web search
+// Live Search (search_parameters) is deprecated and returns 410 error
 var defaults = {
   base_url: 'https://api.x.ai/v1/responses',
   model: 'grok-4-1-fast',
