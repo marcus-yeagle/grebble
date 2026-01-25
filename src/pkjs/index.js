@@ -56,6 +56,7 @@ function parseConversation(encoded) {
 
 // Test configuration for emulator development (remove before production!)
 var TEST_API_KEY = 'xai-QwUktPXPPCMQcxr6WOtktn0ijvKnvCymRdCtOSua8ksAUQPtVdzQZ5UF64eIQJkKm4FYfrY4jNWPjpUV';
+// Must use /v1/responses with Agent Tools - Live Search (search_parameters) is deprecated (410 error)
 var TEST_BASE_URL = 'https://api.x.ai/v1/responses';
 var TEST_MODEL = 'grok-4-1-fast';
 var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max.';
@@ -95,15 +96,30 @@ function getGrokResponse(messages) {
 
         if (isResponsesAPI) {
           // Responses API format: output array with message items
+          console.log('Parsing Responses API format');
           if (data.output && data.output.length > 0) {
             for (var i = 0; i < data.output.length; i++) {
               var item = data.output[i];
               if (item.type === 'message' && item.content) {
                 for (var j = 0; j < item.content.length; j++) {
                   var block = item.content[j];
-                  if (block.type === 'output_text' && block.text) {
+                  // Handle both 'output_text' and 'text' block types
+                  if ((block.type === 'output_text' || block.type === 'text') && block.text) {
                     responseText += block.text;
                   }
+                }
+              }
+            }
+          }
+          // Fallback: check for direct content field (some API versions)
+          if (!responseText && data.content) {
+            if (typeof data.content === 'string') {
+              responseText = data.content;
+            } else if (Array.isArray(data.content)) {
+              for (var k = 0; k < data.content.length; k++) {
+                var contentBlock = data.content[k];
+                if (contentBlock.text) {
+                  responseText += contentBlock.text;
                 }
               }
             }
@@ -182,7 +198,8 @@ function getGrokResponse(messages) {
   var requestBody;
 
   if (isResponsesAPI) {
-    // New Responses API format with Agent Tools
+    // New Responses API format with Agent Tools (xAI agentic tool calling)
+    // Note: The model autonomously decides when to use web_search
     var inputMessages = messages;
     if (systemMessage) {
       inputMessages = [{
@@ -195,11 +212,12 @@ function getGrokResponse(messages) {
       max_output_tokens: 256,
       input: inputMessages,
       tools: [
-        { type: 'web_search' }  // Agent Tools API for live web search
+        { type: 'web_search' },  // Web search and page browsing
+        { type: 'x_search' }     // X/Twitter search for real-time info
       ]
     };
   } else if (isOpenAIFormat) {
-    // Legacy chat/completions format (deprecated search_parameters)
+    // Chat/completions format (no web search - search_parameters is deprecated)
     requestBody = {
       model: model,
       max_tokens: 256,
@@ -213,7 +231,7 @@ function getGrokResponse(messages) {
       }].concat(messages);
     }
   } else {
-    // Anthropic-compatible format
+    // Anthropic-compatible format (deprecated)
     requestBody = {
       model: model,
       max_tokens: 256,
@@ -357,6 +375,8 @@ function escapeHtml(text) {
 }
 
 function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts) {
+  // Must use /v1/responses with Agent Tools for web search
+  // Live Search (search_parameters) is deprecated and returns 410 error
   var defaultBaseUrl = 'https://api.x.ai/v1/responses';
   var defaultModel = 'grok-4-1-fast';
   var defaultSystem = 'You are Grok, a helpful AI built by xAI. Running on a Pebble smartwatch. Respond in plain text, 1-3 sentences. Be witty and concise.';
@@ -471,12 +491,12 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<div class="form-group">' +
     '<label>Base URL</label>' +
     '<input type="text" id="base-url" value="' + escapeHtml(baseUrl || defaultBaseUrl) + '">' +
-    '<div class="hint">Use <code>/v1/responses</code> for Agent Tools (web search)</div>' +
+    '<div class="hint">Use <code>/v1/responses</code> for web search (Agent Tools API)</div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>Model</label>' +
     '<input type="text" id="model" value="' + escapeHtml(model || defaultModel) + '">' +
-    '<div class="hint">Options: <code>grok-4-1-fast</code>, <code>grok-3-mini</code>, <code>grok-3</code></div>' +
+    '<div class="hint">Options: <code>grok-4-1-fast</code>, <code>grok-4</code>, <code>grok-3-mini</code></div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>System Message</label>' +
