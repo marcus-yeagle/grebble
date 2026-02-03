@@ -344,6 +344,30 @@ function sendReadyStatus() {
     }
   }
 
+  // Include RSVP settings
+  var rsvpEnabled = localStorage.getItem('rsvp_enabled') === 'true' ? 1 : 0;
+  var rsvpWpm = parseInt(localStorage.getItem('rsvp_wpm')) || 350;
+  var rsvpWordsPerChunk = parseInt(localStorage.getItem('rsvp_words_per_chunk')) || 1;
+  var rsvpPauseOnPunctuation = localStorage.getItem('rsvp_pause_on_punctuation') !== 'false' ? 1 : 0;
+  var rsvpSkipWords = parseInt(localStorage.getItem('rsvp_skip_words')) || 5;
+  var rsvpShowProgress = localStorage.getItem('rsvp_show_progress') === 'true' ? 1 : 0;
+
+  // Clamp WPM to valid range (150-800)
+  rsvpWpm = Math.max(150, Math.min(800, rsvpWpm));
+  // Clamp words per chunk to 1-3
+  rsvpWordsPerChunk = Math.max(1, Math.min(3, rsvpWordsPerChunk));
+  // Clamp skip words to reasonable range (1-20)
+  rsvpSkipWords = Math.max(1, Math.min(20, rsvpSkipWords));
+
+  message['RSVP_ENABLED'] = rsvpEnabled;
+  message['RSVP_WPM'] = rsvpWpm;
+  message['RSVP_WORDS_PER_CHUNK'] = rsvpWordsPerChunk;
+  message['RSVP_PAUSE_ON_PUNCTUATION'] = rsvpPauseOnPunctuation;
+  message['RSVP_SKIP_WORDS'] = rsvpSkipWords;
+  message['RSVP_SHOW_PROGRESS'] = rsvpShowProgress;
+
+  console.log('Sending RSVP settings: enabled=' + rsvpEnabled + ', wpm=' + rsvpWpm);
+
   Pebble.sendAppMessage(
     message,
     function () {},
@@ -391,7 +415,17 @@ Pebble.addEventListener('showConfiguration', function () {
     cannedPrompts.push(localStorage.getItem('canned_prompt_' + i) || '');
   }
 
-  var configHtml = getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts);
+  // Load RSVP settings
+  var rsvpSettings = {
+    enabled: localStorage.getItem('rsvp_enabled') === 'true',
+    wpm: parseInt(localStorage.getItem('rsvp_wpm')) || 350,
+    wordsPerChunk: parseInt(localStorage.getItem('rsvp_words_per_chunk')) || 1,
+    pauseOnPunctuation: localStorage.getItem('rsvp_pause_on_punctuation') !== 'false',
+    skipWords: parseInt(localStorage.getItem('rsvp_skip_words')) || 5,
+    showProgress: localStorage.getItem('rsvp_show_progress') === 'true'
+  };
+
+  var configHtml = getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts, rsvpSettings);
   var url = 'data:text/html,' + encodeURIComponent(configHtml);
 
   console.log('Opening configuration page');
@@ -446,6 +480,38 @@ Pebble.addEventListener('webviewclosed', function (e) {
         }
       }
 
+      // Handle RSVP settings
+      if (settings.rsvp_enabled !== undefined) {
+        localStorage.setItem('rsvp_enabled', settings.rsvp_enabled ? 'true' : 'false');
+        console.log('rsvp_enabled saved: ' + settings.rsvp_enabled);
+      }
+      if (settings.rsvp_wpm !== undefined) {
+        var wpm = parseInt(settings.rsvp_wpm) || 350;
+        wpm = Math.max(150, Math.min(800, wpm));
+        localStorage.setItem('rsvp_wpm', '' + wpm);
+        console.log('rsvp_wpm saved: ' + wpm);
+      }
+      if (settings.rsvp_words_per_chunk !== undefined) {
+        var wordsPerChunk = parseInt(settings.rsvp_words_per_chunk) || 1;
+        wordsPerChunk = Math.max(1, Math.min(3, wordsPerChunk));
+        localStorage.setItem('rsvp_words_per_chunk', '' + wordsPerChunk);
+        console.log('rsvp_words_per_chunk saved: ' + wordsPerChunk);
+      }
+      if (settings.rsvp_pause_on_punctuation !== undefined) {
+        localStorage.setItem('rsvp_pause_on_punctuation', settings.rsvp_pause_on_punctuation ? 'true' : 'false');
+        console.log('rsvp_pause_on_punctuation saved: ' + settings.rsvp_pause_on_punctuation);
+      }
+      if (settings.rsvp_skip_words !== undefined) {
+        var skipWords = parseInt(settings.rsvp_skip_words) || 5;
+        skipWords = Math.max(1, Math.min(20, skipWords));
+        localStorage.setItem('rsvp_skip_words', '' + skipWords);
+        console.log('rsvp_skip_words saved: ' + skipWords);
+      }
+      if (settings.rsvp_show_progress !== undefined) {
+        localStorage.setItem('rsvp_show_progress', settings.rsvp_show_progress ? 'true' : 'false');
+        console.log('rsvp_show_progress saved: ' + settings.rsvp_show_progress);
+      }
+
       sendReadyStatus();
     } catch (err) {
       console.log('Error parsing settings: ' + err);
@@ -462,7 +528,7 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts) {
+function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts, rsvpSettings) {
   // Must use /v1/responses with Agent Tools for web search
   // Live Search (search_parameters) is deprecated and returns 410 error
   var defaultBaseUrl = 'https://api.x.ai/v1/responses';
@@ -472,6 +538,15 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
   
   // Ensure cannedPrompts array exists
   cannedPrompts = cannedPrompts || ['', '', '', '', ''];
+  
+  // Ensure rsvpSettings object exists with defaults
+  rsvpSettings = rsvpSettings || {};
+  var rsvpEnabled = rsvpSettings.enabled || false;
+  var rsvpWpm = rsvpSettings.wpm || 350;
+  var rsvpWordsPerChunk = rsvpSettings.wordsPerChunk || 1;
+  var rsvpPauseOnPunctuation = rsvpSettings.pauseOnPunctuation !== false;
+  var rsvpSkipWords = rsvpSettings.skipWords || 5;
+  var rsvpShowProgress = rsvpSettings.showProgress || false;
   
   var html = '<!DOCTYPE html><html><head>' +
     '<meta charset="utf-8">' +
@@ -514,6 +589,20 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '#send-msg:active { background: #d4d4d4; transform: scale(0.98); }' +
     '.prompt-input { padding: 10px; font-size: 13px; }' +
     '.prompt-label { font-size: 12px; color: #52525b; margin-bottom: 4px; }' +
+    '.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #27272a; }' +
+    '.toggle-row:last-child { border-bottom: none; }' +
+    '.toggle-label { color: #e5e5e5; font-size: 14px; }' +
+    '.toggle-hint { color: #52525b; font-size: 12px; margin-top: 2px; }' +
+    '.toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }' +
+    '.toggle-switch input { opacity: 0; width: 0; height: 0; }' +
+    '.toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27272a; transition: 0.2s; border-radius: 24px; }' +
+    '.toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: #71717a; transition: 0.2s; border-radius: 50%; }' +
+    '.toggle-switch input:checked + .toggle-slider { background-color: #fff; }' +
+    '.toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); background-color: #000; }' +
+    '.number-input { width: 80px; text-align: center; }' +
+    '.input-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }' +
+    '.input-row:last-child { margin-bottom: 0; }' +
+    '.input-label { color: #e5e5e5; font-size: 14px; }' +
     '</style>' +
     '</head><body>' +
     '<div class="header">' +
@@ -560,6 +649,38 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<input type="text" class="prompt-input" id="prompt-5" placeholder="' + defaultPrompts[4] + '" value="' + escapeHtml(cannedPrompts[4]) + '">' +
     '</div>' +
     '<div class="hint">These will be shown when dictation fails or when you press SELECT on the watch.</div>' +
+    '</div>' +
+    
+    // RSVP Reader Section
+    '<div class="section">' +
+    '<h2>RSVP Reader</h2>' +
+    '<p class="section-desc">Speed-read assistant responses one word at a time. Hold SELECT on the chat screen to activate.</p>' +
+    '<div class="toggle-row">' +
+    '<div><div class="toggle-label">Enable RSVP Reader</div><div class="toggle-hint">Off by default</div></div>' +
+    '<label class="toggle-switch"><input type="checkbox" id="rsvp-enabled"' + (rsvpEnabled ? ' checked' : '') + '><span class="toggle-slider"></span></label>' +
+    '</div>' +
+    '<div id="rsvp-options" style="' + (rsvpEnabled ? '' : 'display:none;') + '">' +
+    '<div class="input-row">' +
+    '<span class="input-label">Words per minute (150-800)</span>' +
+    '<input type="number" class="number-input" id="rsvp-wpm" min="150" max="800" value="' + rsvpWpm + '">' +
+    '</div>' +
+    '<div class="input-row">' +
+    '<span class="input-label">Words per chunk (1-3)</span>' +
+    '<input type="number" class="number-input" id="rsvp-words-per-chunk" min="1" max="3" value="' + rsvpWordsPerChunk + '">' +
+    '</div>' +
+    '<div class="input-row">' +
+    '<span class="input-label">Skip words on UP/DOWN (1-20)</span>' +
+    '<input type="number" class="number-input" id="rsvp-skip-words" min="1" max="20" value="' + rsvpSkipWords + '">' +
+    '</div>' +
+    '<div class="toggle-row">' +
+    '<div><div class="toggle-label">Pause on punctuation</div><div class="toggle-hint">Longer pause at . ! ? : and shorter at , ;</div></div>' +
+    '<label class="toggle-switch"><input type="checkbox" id="rsvp-pause-punctuation"' + (rsvpPauseOnPunctuation ? ' checked' : '') + '><span class="toggle-slider"></span></label>' +
+    '</div>' +
+    '<div class="toggle-row">' +
+    '<div><div class="toggle-label">Show progress indicator</div><div class="toggle-hint">Display word count at bottom</div></div>' +
+    '<label class="toggle-switch"><input type="checkbox" id="rsvp-show-progress"' + (rsvpShowProgress ? ' checked' : '') + '><span class="toggle-slider"></span></label>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
     
     // API Configuration Section
@@ -615,7 +736,12 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '  }' +
     '});' +
     
-    // Save settings button handler (includes canned prompts)
+    // Toggle RSVP options visibility
+    'document.getElementById("rsvp-enabled").addEventListener("change", function() {' +
+    '  document.getElementById("rsvp-options").style.display = this.checked ? "" : "none";' +
+    '});' +
+    
+    // Save settings button handler (includes canned prompts and RSVP)
     'document.getElementById("save").addEventListener("click", function() {' +
     '  var s = {' +
     '    api_key: apiKeyInput.value.trim(),' +
@@ -626,16 +752,23 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '    canned_prompt_2: document.getElementById("prompt-2").value.trim(),' +
     '    canned_prompt_3: document.getElementById("prompt-3").value.trim(),' +
     '    canned_prompt_4: document.getElementById("prompt-4").value.trim(),' +
-    '    canned_prompt_5: document.getElementById("prompt-5").value.trim()' +
+    '    canned_prompt_5: document.getElementById("prompt-5").value.trim(),' +
+    '    rsvp_enabled: document.getElementById("rsvp-enabled").checked,' +
+    '    rsvp_wpm: parseInt(document.getElementById("rsvp-wpm").value) || 350,' +
+    '    rsvp_words_per_chunk: parseInt(document.getElementById("rsvp-words-per-chunk").value) || 1,' +
+    '    rsvp_pause_on_punctuation: document.getElementById("rsvp-pause-punctuation").checked,' +
+    '    rsvp_skip_words: parseInt(document.getElementById("rsvp-skip-words").value) || 5,' +
+    '    rsvp_show_progress: document.getElementById("rsvp-show-progress").checked' +
     '  };' +
     '  document.location = returnTo + encodeURIComponent(JSON.stringify(s));' +
     '});' +
     
-    // Reset button handler (clears everything including prompts)
+    // Reset button handler (clears everything including prompts and RSVP)
     'document.getElementById("reset").addEventListener("click", function() {' +
     '  document.location = returnTo + encodeURIComponent(JSON.stringify({' +
     '    api_key:"",base_url:"",model:"",system_message:"",' +
-    '    canned_prompt_1:"",canned_prompt_2:"",canned_prompt_3:"",canned_prompt_4:"",canned_prompt_5:""' +
+    '    canned_prompt_1:"",canned_prompt_2:"",canned_prompt_3:"",canned_prompt_4:"",canned_prompt_5:"",' +
+    '    rsvp_enabled:false,rsvp_wpm:350,rsvp_words_per_chunk:1,rsvp_pause_on_punctuation:true,rsvp_skip_words:5,rsvp_show_progress:false' +
     '  }));' +
     '});' +
     '</script>' +
