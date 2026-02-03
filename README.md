@@ -122,6 +122,11 @@ pebble build
 pebble install --emulator basalt
 ```
 
+### Config for Emulator
+```bash
+pebble emu-app-config 
+```
+
 ## API Details
 
 This app uses xAI's Grok API. Two endpoint formats are supported:

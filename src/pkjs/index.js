@@ -4,30 +4,38 @@
  * Handles API communication with xAI's Grok API and
  * configuration management.
  * 
- * Uses the Anthropic-compatible endpoint for easier migration.
+ * Supports xAI's Responses API and legacy compatible formats.
  */
 
-// PebbleKit JS (older SDK runtimes) may not provide `fetch`. The debug-mode
-// instrumentation below uses fetch() as required, so we polyfill it using XHR.
-if (typeof fetch !== 'function') {
-  // eslint-disable-next-line no-var
-  var fetch = function (url, options) {
-    try {
-      options = options || {};
-      var xhr = new XMLHttpRequest();
-      xhr.open(options.method || 'GET', url, true);
-      if (options.headers) {
-        for (var k in options.headers) {
-          if (Object.prototype.hasOwnProperty.call(options.headers, k)) {
-            xhr.setRequestHeader(k, options.headers[k]);
-          }
-        }
-      }
-      xhr.send(options.body || null);
-    } catch (e) {
-      // swallow
-    }
-    return { catch: function () {} };
+function stripTrailingSlash(url) {
+  if (!url) return url;
+  while (url.length > 0 && url.charAt(url.length - 1) === '/') {
+    url = url.substring(0, url.length - 1);
+  }
+  return url;
+}
+
+function maybeMigrateLegacyXaiSettings(storedBaseUrl, storedModel) {
+  var migratedBaseUrl = false;
+  var migratedModel = false;
+
+  var normalizedBaseUrl = stripTrailingSlash(storedBaseUrl);
+  if (normalizedBaseUrl === 'https://api.x.ai/v1/chat/completions' ||
+      normalizedBaseUrl === 'https://api.x.ai/v1/messages') {
+    localStorage.setItem('base_url', 'https://api.x.ai/v1/responses');
+    migratedBaseUrl = true;
+  }
+
+  // If the user had an older default model saved, migrate to the new default.
+  // (Leave custom/unknown models untouched.)
+  if (storedModel === 'grok-4-1-fast-reasoning') {
+    localStorage.setItem('model', 'grok-4-1-fast');
+    migratedModel = true;
+  }
+
+  return {
+    migratedBaseUrl: migratedBaseUrl,
+    migratedModel: migratedModel
   };
 }
 
@@ -54,17 +62,59 @@ function parseConversation(encoded) {
   return messages;
 }
 
+// Sanitize assistant response text for watch display.
+// Removes URLs, citation links, and reference blocks that waste screen real estate.
+function sanitizeForWatch(text) {
+  if (!text) return text;
+
+  // 1. Remove inline citation links: [[1]](https://...) or [1](https://...)
+  //    Pattern: [optional bracket][number/text][bracket](url)
+  text = text.replace(/\[\[?\d+\]?\]\([^)]+\)/g, '');
+
+  // 2. Convert markdown links [label](url) -> label (keep readable text, drop URL)
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+  // 3. Remove bare URLs: https://..., http://..., www....
+  //    Match until whitespace or end of string
+  text = text.replace(/https?:\/\/[^\s)>\]]+/gi, '');
+  text = text.replace(/\bwww\.[^\s)>\]]+/gi, '');
+
+  // 4. Remove trailing Sources/References/Citations sections
+  //    These often appear at the end with a header like "Sources:" followed by list
+  text = text.replace(/\n\s*(Sources|References|Citations|Learn more):?\s*[\s\S]*$/i, '');
+
+  // 5. Clean up leftover artifacts: empty brackets, multiple spaces, leading/trailing whitespace
+  text = text.replace(/\[\s*\]/g, '');           // empty []
+  text = text.replace(/\(\s*\)/g, '');           // empty ()
+  text = text.replace(/\s{2,}/g, ' ');           // collapse multiple spaces
+  text = text.trim();
+
+  return text;
+}
+
 // Test configuration for emulator development (remove before production!)
 var TEST_API_KEY = '[REDACTED-API-KEY]';
-var TEST_BASE_URL = 'https://api.x.ai/v1/chat/completions';
-var TEST_MODEL = 'grok-4-1-fast-reasoning';
-var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max.';
+// Must use /v1/responses with Agent Tools - Live Search (search_parameters) is deprecated (410 error)
+var TEST_BASE_URL = 'https://api.x.ai/v1/responses';
+var TEST_MODEL = 'grok-4-1-fast';
+var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max. Do not include sources, citations, or URLs.';
 
 // Get response from Grok API (xAI)
 function getGrokResponse(messages) {
-  var apiKey = localStorage.getItem('api_key') || TEST_API_KEY;
-  var baseUrl = localStorage.getItem('base_url') || TEST_BASE_URL;
-  var model = localStorage.getItem('model') || TEST_MODEL;
+  var storedApiKey = localStorage.getItem('api_key');
+  var storedBaseUrl = localStorage.getItem('base_url');
+  var storedModel = localStorage.getItem('model');
+
+  // Auto-migrate legacy xAI settings so phone installs match emulator defaults.
+  // This prevents stale /chat/completions or /messages endpoints from disabling web search.
+  maybeMigrateLegacyXaiSettings(storedBaseUrl, storedModel);
+
+  // Re-read after any migration.
+  storedBaseUrl = localStorage.getItem('base_url');
+  storedModel = localStorage.getItem('model');
+  var apiKey = storedApiKey || TEST_API_KEY;
+  var baseUrl = storedBaseUrl || TEST_BASE_URL;
+  var model = storedModel || TEST_MODEL;
   var defaultSystem = TEST_SYSTEM;
   var systemMessage = localStorage.getItem('system_message') || defaultSystem;
 
@@ -77,12 +127,21 @@ function getGrokResponse(messages) {
 
   console.log('Sending request to Grok API with ' + messages.length + ' messages');
 
+  var isResponsesAPI = baseUrl.indexOf('/responses') !== -1;
+  var isOpenAIFormat = baseUrl.indexOf('/chat/completions') !== -1;
+  var format = isResponsesAPI ? 'responses' : (isOpenAIFormat ? 'chat_completions' : 'anthropic');
+
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', baseUrl, true);
+  try {
+    xhr.open('POST', baseUrl, true);
+  } catch (openErr) {
+    console.log('XHR open failed: ' + openErr);
+    Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'Network error occurred (invalid URL)' });
+    Pebble.sendAppMessage({ 'RESPONSE_END': 1 });
+    return;
+  }
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
-
-  var isOpenAIFormat = baseUrl.indexOf('/chat/completions') !== -1;
   
   xhr.timeout = 30000;
 
@@ -92,11 +151,46 @@ function getGrokResponse(messages) {
         var data = JSON.parse(xhr.responseText);
         var responseText = '';
 
-        if (isOpenAIFormat) {
+        if (isResponsesAPI) {
+          // Responses API format: output array with message items
+          console.log('Parsing Responses API format');
+          if (data.output && data.output.length > 0) {
+            for (var i = 0; i < data.output.length; i++) {
+              var item = data.output[i];
+              if (item.type === 'message' && item.content) {
+                for (var j = 0; j < item.content.length; j++) {
+                  var block = item.content[j];
+                  // Handle both 'output_text' and 'text' block types
+                  if ((block.type === 'output_text' || block.type === 'text') && block.text) {
+                    responseText += block.text;
+                  }
+                }
+              }
+            }
+          }
+          // Fallback: check for direct content field (some API versions)
+          if (!responseText && data.content) {
+            if (typeof data.content === 'string') {
+              responseText = data.content;
+            } else if (Array.isArray(data.content)) {
+              for (var k = 0; k < data.content.length; k++) {
+                var contentBlock = data.content[k];
+                if (contentBlock.text) {
+                  responseText += contentBlock.text;
+                }
+              }
+            }
+          }
+          if (data.citations && Array.isArray(data.citations)) {
+            // citations available if needed in future
+          }
+        } else if (isOpenAIFormat) {
+          // Legacy chat/completions format
           if (data.choices && data.choices.length > 0 && data.choices[0].message) {
             responseText = data.choices[0].message.content || '';
           }
         } else {
+          // Anthropic-compatible format
           if (data.content && data.content.length > 0) {
             for (var i = 0; i < data.content.length; i++) {
               var block = data.content[i];
@@ -109,8 +203,11 @@ function getGrokResponse(messages) {
 
         responseText = responseText.trim();
 
+        // Strip URLs, citation links, and reference blocks for watch display
+        responseText = sanitizeForWatch(responseText);
+
         if (responseText.length > 0) {
-          console.log('Sending response: ' + responseText);
+          console.log('Sending response (len=' + responseText.length + ')');
           Pebble.sendAppMessage(
             { 'RESPONSE_TEXT': responseText },
             function () {},
@@ -163,14 +260,31 @@ function getGrokResponse(messages) {
 
   var requestBody;
 
-  if (isOpenAIFormat) {
+  if (isResponsesAPI) {
+    // New Responses API format with Agent Tools (xAI agentic tool calling)
+    // Note: The model autonomously decides when to use web_search
+    var inputMessages = messages;
+    if (systemMessage) {
+      inputMessages = [{
+        role: 'system',
+        content: systemMessage
+      }].concat(messages);
+    }
+    requestBody = {
+      model: model,
+      max_output_tokens: 256,
+      input: inputMessages,
+      tools: [
+        { type: 'web_search' },  // Web search and page browsing
+        { type: 'x_search' }     // X/Twitter search for real-time info
+      ]
+    };
+  } else if (isOpenAIFormat) {
+    // Chat/completions format (no web search - search_parameters is deprecated)
     requestBody = {
       model: model,
       max_tokens: 256,
-      messages: messages,
-      search_parameters: {
-        mode: 'auto'  // Enable live web search when Grok deems it helpful
-      }
+      messages: messages
     };
 
     if (systemMessage) {
@@ -180,13 +294,11 @@ function getGrokResponse(messages) {
       }].concat(messages);
     }
   } else {
+    // Anthropic-compatible format (deprecated)
     requestBody = {
       model: model,
       max_tokens: 256,
-      messages: messages,
-      search_parameters: {
-        mode: 'auto'  // Enable live web search when Grok deems it helpful
-      }
+      messages: messages
     };
 
     if (systemMessage) {
@@ -194,8 +306,25 @@ function getGrokResponse(messages) {
     }
   }
 
-  console.log('Request body: ' + JSON.stringify(requestBody));
-  xhr.send(JSON.stringify(requestBody));
+  var requestJson;
+  try {
+    requestJson = JSON.stringify(requestBody);
+  } catch (stringifyErr) {
+    console.log('Failed to stringify request: ' + stringifyErr);
+    Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'Request build error' });
+    Pebble.sendAppMessage({ 'RESPONSE_END': 1 });
+    return;
+  }
+
+  console.log('Request prepared (format=' + format + ', json_len=' + requestJson.length + ')');
+
+  try {
+    xhr.send(requestJson);
+  } catch (sendErr) {
+    console.log('XHR send failed: ' + sendErr);
+    Pebble.sendAppMessage({ 'RESPONSE_TEXT': 'Network error occurred (send failed)' });
+    Pebble.sendAppMessage({ 'RESPONSE_END': 1 });
+  }
 }
 
 function sendReadyStatus() {
@@ -241,7 +370,7 @@ Pebble.addEventListener('appmessage', function (e) {
 
   if (e.payload.REQUEST_CHAT) {
     var encoded = e.payload.REQUEST_CHAT;
-    console.log('REQUEST_CHAT received: ' + encoded);
+    console.log('REQUEST_CHAT received (len=' + (encoded ? encoded.length : 0) + ')');
 
     var messages = parseConversation(encoded);
     console.log('Parsed ' + messages.length + ' messages');
@@ -273,11 +402,18 @@ Pebble.addEventListener('webviewclosed', function (e) {
   if (e && e.response) {
     try {
       var settings = JSON.parse(decodeURIComponent(e.response));
-      console.log('Settings received: ' + JSON.stringify(settings));
+      var safeSettingsLog = {
+        has_api_key: !!(settings.api_key && settings.api_key.trim && settings.api_key.trim().length > 0),
+        base_url: settings.base_url ? ('' + settings.base_url).trim() : '',
+        model: settings.model ? ('' + settings.model).trim() : '',
+        system_message_len: settings.system_message ? ('' + settings.system_message).length : 0,
+        has_phone_message: !!(settings.phone_message && ('' + settings.phone_message).trim().length > 0)
+      };
+      console.log('Settings received (safe): ' + JSON.stringify(safeSettingsLog));
 
       // Check if this is a phone message (send to watch directly)
       if (settings.phone_message && settings.phone_message.trim() !== '') {
-        console.log('Sending phone message to watch: ' + settings.phone_message);
+        console.log('Sending phone message to watch (len=' + settings.phone_message.trim().length + ')');
         Pebble.sendAppMessage({ 'PHONE_MESSAGE': settings.phone_message.trim() });
         return;
       }
@@ -300,8 +436,9 @@ Pebble.addEventListener('webviewclosed', function (e) {
         var promptKey = 'canned_prompt_' + j;
         if (settings[promptKey] !== undefined) {
           if (settings[promptKey] && settings[promptKey].trim() !== '') {
-            localStorage.setItem(promptKey, settings[promptKey].trim());
-            console.log(promptKey + ' saved: ' + settings[promptKey].trim());
+            var trimmedPrompt = settings[promptKey].trim();
+            localStorage.setItem(promptKey, trimmedPrompt);
+            console.log(promptKey + ' saved (len=' + trimmedPrompt.length + ')');
           } else {
             localStorage.removeItem(promptKey);
             console.log(promptKey + ' cleared');
@@ -326,9 +463,11 @@ function escapeHtml(text) {
 }
 
 function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts) {
-  var defaultBaseUrl = 'https://api.x.ai/v1/chat/completions';
-  var defaultModel = 'grok-3-mini';
-  var defaultSystem = 'You are Grok, a helpful AI built by xAI. Running on a Pebble smartwatch. Respond in plain text, 1-3 sentences. Be witty and concise.';
+  // Must use /v1/responses with Agent Tools for web search
+  // Live Search (search_parameters) is deprecated and returns 410 error
+  var defaultBaseUrl = 'https://api.x.ai/v1/responses';
+  var defaultModel = 'grok-4-1-fast';
+  var defaultSystem = 'You are Grok, a helpful AI built by xAI. Running on a Pebble smartwatch. Respond in plain text, 1-3 sentences. Be witty and concise. Do not include sources, citations, or URLs.';
   var defaultPrompts = ['Hello', "What's the weather?", 'Tell me a joke', 'Thanks!', 'Goodbye'];
   
   // Ensure cannedPrompts array exists
@@ -440,12 +579,12 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<div class="form-group">' +
     '<label>Base URL</label>' +
     '<input type="text" id="base-url" value="' + escapeHtml(baseUrl || defaultBaseUrl) + '">' +
-    '<div class="hint">Use <code>/v1/chat/completions</code> for OpenAI-compatible format</div>' +
+    '<div class="hint">Use <code>/v1/responses</code> for web search (Agent Tools API)</div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>Model</label>' +
     '<input type="text" id="model" value="' + escapeHtml(model || defaultModel) + '">' +
-    '<div class="hint">Options: <code>grok-3-mini</code>, <code>grok-3</code>, <code>grok-4</code></div>' +
+    '<div class="hint">Options: <code>grok-4-1-fast</code>, <code>grok-4</code>, <code>grok-3-mini</code></div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>System Message</label>' +
@@ -460,6 +599,10 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '<script>' +
     'var apiKeyInput = document.getElementById("api-key");' +
     'var advancedDiv = document.getElementById("advanced");' +
+    'var returnTo = (function(){' +
+    '  var m = location.search.match(/[?&]return_to=([^&]+)/);' +
+    '  return m ? decodeURIComponent(m[1]) : "pebblejs://close#";' +
+    '})();' +
     'function toggleAdvanced() { advancedDiv.style.display = apiKeyInput.value.trim() ? "block" : "none"; }' +
     'toggleAdvanced();' +
     'apiKeyInput.addEventListener("input", toggleAdvanced);' +
@@ -468,7 +611,7 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     'document.getElementById("send-msg").addEventListener("click", function() {' +
     '  var msg = document.getElementById("phone-message").value.trim();' +
     '  if (msg) {' +
-    '    document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify({phone_message: msg}));' +
+    '    document.location = returnTo + encodeURIComponent(JSON.stringify({phone_message: msg}));' +
     '  }' +
     '});' +
     
@@ -485,12 +628,12 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts)
     '    canned_prompt_4: document.getElementById("prompt-4").value.trim(),' +
     '    canned_prompt_5: document.getElementById("prompt-5").value.trim()' +
     '  };' +
-    '  document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(s));' +
+    '  document.location = returnTo + encodeURIComponent(JSON.stringify(s));' +
     '});' +
     
     // Reset button handler (clears everything including prompts)
     'document.getElementById("reset").addEventListener("click", function() {' +
-    '  document.location = "pebblejs://close#" + encodeURIComponent(JSON.stringify({' +
+    '  document.location = returnTo + encodeURIComponent(JSON.stringify({' +
     '    api_key:"",base_url:"",model:"",system_message:"",' +
     '    canned_prompt_1:"",canned_prompt_2:"",canned_prompt_3:"",canned_prompt_4:"",canned_prompt_5:""' +
     '  }));' +
