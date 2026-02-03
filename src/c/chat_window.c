@@ -3,6 +3,7 @@
 #include "chat_footer.h"
 #include "grok_pulse.h"
 #include "quick_reply.h"
+#include "rsvp_reader.h"
 
 #ifdef PBL_PLATFORM_APLITE
   #define MAX_MESSAGES 6
@@ -36,6 +37,18 @@ static ChatFooter *s_footer;
 static QuickReply *s_quick_reply = NULL;
 static bool s_quick_reply_mode = false;
 
+// RSVP reader state
+static RSVPReader *s_rsvp_reader = NULL;
+static bool s_rsvp_mode = false;
+static RSVPConfig s_rsvp_config;
+
+// RSVP countdown state
+static bool s_countdown_active = false;
+static int s_countdown_value = 0;
+static AppTimer *s_countdown_timer = NULL;
+static Layer *s_countdown_layer = NULL;
+static TextLayer *s_countdown_text_layer = NULL;
+
 // Message storage (designed for dynamic updates)
 static Message s_messages[MAX_MESSAGES];
 static int s_message_count = 0;
@@ -64,10 +77,18 @@ static void action_button_update_proc(Layer *layer, GContext *ctx);
 static void show_quick_reply(void);
 static void hide_quick_reply(void);
 static void send_quick_reply(void);
+static void show_rsvp_reader(void);
+static void hide_rsvp_reader(void);
+static void start_rsvp_countdown(void);
+static void cancel_rsvp_countdown(void);
+static void countdown_timer_callback(void *context);
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
+
+  // Initialize RSVP config with defaults
+  s_rsvp_config = rsvp_config_get_default();
 
   // Set click config provider on window
   window_set_click_config_provider(window, click_config_provider);
@@ -281,7 +302,16 @@ static void send_chat_request(void) {
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if (s_quick_reply_mode && s_quick_reply) {
+  // Cancel countdown on any button press
+  if (s_countdown_active) {
+    cancel_rsvp_countdown();
+    return;
+  }
+  
+  if (s_rsvp_mode && s_rsvp_reader) {
+    // In RSVP mode: skip backward
+    rsvp_reader_skip_back(s_rsvp_reader);
+  } else if (s_quick_reply_mode && s_quick_reply) {
     // In quick reply mode: cycle to previous option
     quick_reply_prev(s_quick_reply);
   } else {
@@ -293,7 +323,16 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if (s_quick_reply_mode && s_quick_reply) {
+  // Cancel countdown on any button press
+  if (s_countdown_active) {
+    cancel_rsvp_countdown();
+    return;
+  }
+  
+  if (s_rsvp_mode && s_rsvp_reader) {
+    // In RSVP mode: skip forward
+    rsvp_reader_skip_forward(s_rsvp_reader);
+  } else if (s_quick_reply_mode && s_quick_reply) {
     // In quick reply mode: cycle to next option
     quick_reply_next(s_quick_reply);
   } else {
@@ -305,6 +344,18 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  // Cancel countdown on any button press
+  if (s_countdown_active) {
+    cancel_rsvp_countdown();
+    return;
+  }
+  
+  // Handle RSVP mode: toggle pause
+  if (s_rsvp_mode && s_rsvp_reader) {
+    rsvp_reader_toggle_pause(s_rsvp_reader);
+    return;
+  }
+
   // Don't allow input if waiting for response
   if (s_waiting_for_response) {
     return;
@@ -320,7 +371,16 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if (s_quick_reply_mode) {
+  // Cancel countdown on any button press
+  if (s_countdown_active) {
+    cancel_rsvp_countdown();
+    return;
+  }
+  
+  if (s_rsvp_mode) {
+    // In RSVP mode: exit RSVP
+    hide_rsvp_reader();
+  } else if (s_quick_reply_mode) {
     // In quick reply mode: exit without sending
     hide_quick_reply();
   } else {
@@ -431,7 +491,204 @@ static void send_quick_reply(void) {
   send_chat_request();
 }
 
+static void show_rsvp_reader(void) {
+  if (s_rsvp_mode) {
+    return;  // Already showing
+  }
+  
+  // Find the most recent assistant message
+  const char *assistant_text = NULL;
+  for (int i = s_message_count - 1; i >= 0; i--) {
+    if (!s_messages[i].is_user) {
+      assistant_text = s_messages[i].text;
+      break;
+    }
+  }
+  
+  if (!assistant_text || strlen(assistant_text) == 0) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No assistant message to read with RSVP");
+    return;
+  }
+  
+  // Hide quick reply if showing
+  if (s_quick_reply_mode) {
+    hide_quick_reply();
+  }
+  
+  // Calculate fullscreen dimensions (below status bar)
+  int status_bar_height = STATUS_BAR_LAYER_HEIGHT;
+  int rsvp_height = s_window_height - status_bar_height;
+  
+  // Create RSVP reader overlay
+  s_rsvp_reader = rsvp_reader_create(s_content_width, rsvp_height, assistant_text, &s_rsvp_config);
+  if (!s_rsvp_reader) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create RSVP reader");
+    return;
+  }
+  
+  // Position below status bar
+  Layer *rsvp_layer = rsvp_reader_get_layer(s_rsvp_reader);
+  GRect rsvp_frame = layer_get_frame(rsvp_layer);
+  rsvp_frame.origin.x = 0;
+  rsvp_frame.origin.y = status_bar_height;
+  layer_set_frame(rsvp_layer, rsvp_frame);
+  
+  // Add to window (above scroll layer)
+  Layer *window_layer = window_get_root_layer(s_window);
+  layer_add_child(window_layer, rsvp_layer);
+  
+  s_rsvp_mode = true;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP reader mode enabled");
+}
+
+static void hide_rsvp_reader(void) {
+  if (!s_rsvp_mode || !s_rsvp_reader) {
+    return;
+  }
+  
+  // Remove and destroy RSVP reader
+  layer_remove_from_parent(rsvp_reader_get_layer(s_rsvp_reader));
+  rsvp_reader_destroy(s_rsvp_reader);
+  s_rsvp_reader = NULL;
+  
+  s_rsvp_mode = false;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP reader mode disabled");
+}
+
+// --- RSVP Countdown Functions ---
+
+static void countdown_layer_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  
+  // Fill with dark background
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+}
+
+static void countdown_timer_callback(void *context) {
+  s_countdown_timer = NULL;
+  
+  if (!s_countdown_active) {
+    return;
+  }
+  
+  s_countdown_value--;
+  
+  if (s_countdown_value <= 0) {
+    // Countdown finished - launch RSVP reader
+    cancel_rsvp_countdown();
+    show_rsvp_reader();
+  } else {
+    // Update display and schedule next tick
+    static char countdown_text[4];
+    snprintf(countdown_text, sizeof(countdown_text), "%d", s_countdown_value);
+    text_layer_set_text(s_countdown_text_layer, countdown_text);
+    layer_mark_dirty(s_countdown_layer);
+    
+    // Schedule next tick (1 second)
+    s_countdown_timer = app_timer_register(1000, countdown_timer_callback, NULL);
+  }
+}
+
+static void start_rsvp_countdown(void) {
+  if (s_countdown_active || s_rsvp_mode || s_quick_reply_mode) {
+    return;
+  }
+  
+  // Check if there's an assistant message to read
+  bool has_assistant_msg = false;
+  for (int i = s_message_count - 1; i >= 0; i--) {
+    if (!s_messages[i].is_user) {
+      has_assistant_msg = true;
+      break;
+    }
+  }
+  
+  if (!has_assistant_msg) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No assistant message for RSVP countdown");
+    return;
+  }
+  
+  // Hide quick reply if showing
+  if (s_quick_reply_mode) {
+    hide_quick_reply();
+  }
+  
+  // Calculate fullscreen dimensions (below status bar)
+  int status_bar_height = STATUS_BAR_LAYER_HEIGHT;
+  int countdown_height = s_window_height - status_bar_height;
+  
+  // Create countdown overlay layer
+  s_countdown_layer = layer_create(GRect(0, status_bar_height, s_content_width, countdown_height));
+  layer_set_update_proc(s_countdown_layer, countdown_layer_update_proc);
+  
+  // Create large centered text for countdown number
+  int text_height = 60;
+  int text_y = (countdown_height - text_height) / 2;
+  s_countdown_text_layer = text_layer_create(GRect(0, text_y, s_content_width, text_height));
+  text_layer_set_font(s_countdown_text_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
+  text_layer_set_text_alignment(s_countdown_text_layer, GTextAlignmentCenter);
+  text_layer_set_text_color(s_countdown_text_layer, GColorWhite);
+  text_layer_set_background_color(s_countdown_text_layer, GColorClear);
+  text_layer_set_text(s_countdown_text_layer, "3");
+  layer_add_child(s_countdown_layer, text_layer_get_layer(s_countdown_text_layer));
+  
+  // Add to window
+  Layer *window_layer = window_get_root_layer(s_window);
+  layer_add_child(window_layer, s_countdown_layer);
+  
+  // Start countdown
+  s_countdown_active = true;
+  s_countdown_value = 3;
+  
+  // Schedule first tick (1 second)
+  s_countdown_timer = app_timer_register(1000, countdown_timer_callback, NULL);
+  
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP countdown started");
+}
+
+static void cancel_rsvp_countdown(void) {
+  if (!s_countdown_active) {
+    return;
+  }
+  
+  // Cancel timer
+  if (s_countdown_timer) {
+    app_timer_cancel(s_countdown_timer);
+    s_countdown_timer = NULL;
+  }
+  
+  // Destroy countdown UI
+  if (s_countdown_text_layer) {
+    text_layer_destroy(s_countdown_text_layer);
+    s_countdown_text_layer = NULL;
+  }
+  
+  if (s_countdown_layer) {
+    layer_remove_from_parent(s_countdown_layer);
+    layer_destroy(s_countdown_layer);
+    s_countdown_layer = NULL;
+  }
+  
+  s_countdown_active = false;
+  s_countdown_value = 0;
+  
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP countdown cancelled");
+}
+
 static void window_unload(Window *window) {
+  // Clean up countdown if active
+  if (s_countdown_active) {
+    cancel_rsvp_countdown();
+  }
+  
+  // Clean up RSVP reader if showing
+  if (s_rsvp_reader) {
+    rsvp_reader_destroy(s_rsvp_reader);
+    s_rsvp_reader = NULL;
+    s_rsvp_mode = false;
+  }
+  
   // Clean up quick reply if showing
   if (s_quick_reply) {
     quick_reply_destroy(s_quick_reply);
@@ -480,6 +737,45 @@ void chat_window_handle_inbox(DictionaryIterator *iterator) {
   Tuple *response_text_tuple = dict_find(iterator, MESSAGE_KEY_RESPONSE_TEXT);
   Tuple *response_end_tuple = dict_find(iterator, MESSAGE_KEY_RESPONSE_END);
   Tuple *phone_msg_tuple = dict_find(iterator, MESSAGE_KEY_PHONE_MESSAGE);
+  
+  // Handle RSVP configuration updates
+  Tuple *rsvp_tuple;
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_ENABLED);
+  if (rsvp_tuple) {
+    s_rsvp_config.enabled = (rsvp_tuple->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP enabled: %d", s_rsvp_config.enabled);
+  }
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_WPM);
+  if (rsvp_tuple) {
+    s_rsvp_config.wpm = (uint16_t)rsvp_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP WPM: %d", s_rsvp_config.wpm);
+  }
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_WORDS_PER_CHUNK);
+  if (rsvp_tuple) {
+    s_rsvp_config.words_per_chunk = (uint8_t)rsvp_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP words per chunk: %d", s_rsvp_config.words_per_chunk);
+  }
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_PAUSE_ON_PUNCTUATION);
+  if (rsvp_tuple) {
+    s_rsvp_config.pause_on_punctuation = (rsvp_tuple->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP pause on punctuation: %d", s_rsvp_config.pause_on_punctuation);
+  }
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_SKIP_WORDS);
+  if (rsvp_tuple) {
+    s_rsvp_config.skip_words = (uint8_t)rsvp_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP skip words: %d", s_rsvp_config.skip_words);
+  }
+  
+  rsvp_tuple = dict_find(iterator, MESSAGE_KEY_RSVP_SHOW_PROGRESS);
+  if (rsvp_tuple) {
+    s_rsvp_config.show_progress = (rsvp_tuple->value->int32 == 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "RSVP show progress: %d", s_rsvp_config.show_progress);
+  }
 
   // Handle phone message (typed on phone, sent to watch)
   if (phone_msg_tuple) {
@@ -511,6 +807,12 @@ void chat_window_handle_inbox(DictionaryIterator *iterator) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received RESPONSE_END");
     s_waiting_for_response = false;
     chat_window_set_footer_animating(false);
+    
+    // Start RSVP countdown if enabled and not already in RSVP mode
+    if (s_rsvp_config.enabled && !s_rsvp_mode && !s_countdown_active) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Starting RSVP countdown after response");
+      start_rsvp_countdown();
+    }
   }
 }
 

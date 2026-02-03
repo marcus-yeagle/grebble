@@ -1,7 +1,5 @@
 <p align="center">
-  <img src="resources/grok-logo.png" alt="Grok" height="48" style="vertical-align: middle;">
-  &nbsp;&nbsp;<b style="vertical-align: middle;">+</b>&nbsp;&nbsp;
-  <img src="resources/pebble-logo.svg" alt="Pebble" height="48" style="vertical-align: middle;">
+  <img src="resources/grebble-logo.png" alt="Grebble" width="400">
 </p>
 
 # Grebble
