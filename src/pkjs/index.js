@@ -275,8 +275,7 @@ function getGrokResponse(messages) {
       max_output_tokens: 256,
       input: inputMessages,
       tools: [
-        { type: 'web_search' },  // Web search and page browsing
-        { type: 'x_search' }     // X/Twitter search for real-time info
+        { type: 'web_search' }   // Web search and page browsing
       ]
     };
   } else if (isOpenAIFormat) {
