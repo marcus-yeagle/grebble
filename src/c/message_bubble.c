@@ -93,43 +93,6 @@ void message_bubble_destroy(MessageBubble *bubble) {
   free(bubble);
 }
 
-void message_bubble_set_text(MessageBubble *bubble, const char *text) {
-  if (!bubble || !bubble->text_layer) {
-    return;
-  }
-
-  // Update text
-  text_layer_set_text(bubble->text_layer, text);
-
-  // Recalculate text size (account for padding so bubble doesn't exceed max_width)
-  GFont font = fonts_get_system_font(MESSAGE_FONT);
-  int available_text_width = bubble->max_width - (MESSAGE_PADDING * 2);
-  GSize text_size = graphics_text_layout_get_content_size(
-    text,
-    font,
-    GRect(0, 0, available_text_width, 2000),
-    GTextOverflowModeWordWrap,
-    GTextAlignmentLeft
-  );
-
-  // Update bubble height (width stays at max_width)
-  int bubble_height = text_size.h + (MESSAGE_PADDING * 2);
-  GRect frame = layer_get_frame(bubble->layer);
-  frame.size.h = bubble_height;
-  layer_set_frame(bubble->layer, frame);
-
-  // Update text layer size and position (centered vertically with extra height for descenders)
-  GRect text_frame = GRect(
-    MESSAGE_PADDING,
-    MESSAGE_PADDING / 2,
-    text_size.w,
-    bubble_height - MESSAGE_PADDING
-  );
-  layer_set_frame(text_layer_get_layer(bubble->text_layer), text_frame);
-
-  layer_mark_dirty(bubble->layer);
-}
-
 Layer* message_bubble_get_layer(MessageBubble *bubble) {
   return bubble ? bubble->layer : NULL;
 }

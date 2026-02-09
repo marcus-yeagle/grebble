@@ -27,13 +27,6 @@ MessageBubble* message_bubble_create(const char *text, bool is_user, int max_wid
 void message_bubble_destroy(MessageBubble *bubble);
 
 /**
- * Update the text in the message bubble (for streaming support).
- * @param bubble The bubble to update
- * @param text The new text to display
- */
-void message_bubble_set_text(MessageBubble *bubble, const char *text);
-
-/**
  * Get the underlying Layer for adding to view hierarchy.
  * @param bubble The message bubble
  * @return The Layer object

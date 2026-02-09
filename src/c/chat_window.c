@@ -6,12 +6,12 @@
 #include "rsvp_reader.h"
 
 #ifdef PBL_PLATFORM_APLITE
-  #define MAX_MESSAGES 6
+  #define MAX_MESSAGES 4
   #define MESSAGE_TEXT_MAX 256
   // Must fit within AppMessage outbox (512 bytes on Aplite) minus ~64 bytes dict overhead
   #define MESSAGE_BUFFER_SIZE 448
 #else
-  #define MAX_MESSAGES 10
+  #define MAX_MESSAGES 4
   #define MESSAGE_TEXT_MAX 512
   // Must fit within AppMessage outbox (2048 bytes) minus ~64 bytes dict overhead
   #define MESSAGE_BUFFER_SIZE 1984
@@ -69,6 +69,7 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 static void send_chat_request(void);
+static void clear_conversation(void);
 static void shift_messages(void);
 static void add_user_message(const char *text);
 static void add_assistant_message(const char *text);
@@ -172,9 +173,8 @@ static void rebuild_scroll_content(void) {
     }
   }
 
-  // Only show footer when there are messages or waiting for response
-  // This removes empty black space when chat is empty
-  bool show_footer = (s_message_count > 0) || s_waiting_for_response;
+  // Always show footer so Grok logo is visible on all screens
+  bool show_footer = true;
   
   if (show_footer) {
     // Add top padding only if last message is from user
@@ -204,6 +204,19 @@ static void rebuild_scroll_content(void) {
 
   // Restore previous scroll position (prevents jumping during rebuilds)
   scroll_layer_set_content_offset(s_scroll_layer, saved_offset, false);
+}
+
+static void clear_conversation(void) {
+  // Free all existing bubbles
+  for (int i = 0; i < s_bubble_count; i++) {
+    if (s_bubbles[i]) {
+      layer_remove_from_parent(message_bubble_get_layer(s_bubbles[i]));
+      message_bubble_destroy(s_bubbles[i]);
+      s_bubbles[i] = NULL;
+    }
+  }
+  s_bubble_count = 0;
+  s_message_count = 0;
 }
 
 static void shift_messages(void) {
@@ -484,6 +497,9 @@ static void send_quick_reply(void) {
 
   // Hide the quick reply UI first
   hide_quick_reply();
+
+  // Clear previous conversation for fresh single-turn start
+  clear_conversation();
 
   // Add as user message and send
   add_user_message(message);
@@ -782,10 +798,21 @@ void chat_window_handle_inbox(DictionaryIterator *iterator) {
     const char *text = phone_msg_tuple->value->cstring;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received PHONE_MESSAGE: %s", text);
 
+    // Cancel active RSVP before clearing
+    if (s_countdown_active) {
+      cancel_rsvp_countdown();
+    }
+    if (s_rsvp_mode) {
+      hide_rsvp_reader();
+    }
+
     // Hide quick reply if showing
     if (s_quick_reply_mode) {
       hide_quick_reply();
     }
+
+    // Clear previous conversation for fresh single-turn start
+    clear_conversation();
 
     // Add as user message and send to Grok
     add_user_message(text);
@@ -840,8 +867,7 @@ void chat_window_set_footer_animating(bool animating) {
   }
 
   if (animating) {
-    // Rebuild content to ensure footer is visible for animation
-    rebuild_scroll_content();
+    // Footer is always visible, just scroll and animate
     scroll_to_bottom();
     chat_footer_start_animation(s_footer);
   } else {

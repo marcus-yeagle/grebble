@@ -143,7 +143,7 @@ static void draw_grok_x(GContext *ctx, GPoint center, int size, int frame) {
   int stroke_width = (size > 40) ? 3 : 2;
   
   // Color - electric blue on color displays, black on B&W
-  GColor draw_color = PBL_IF_COLOR_ELSE(GColorVividCerulean, GColorBlack);
+  GColor draw_color = PBL_IF_COLOR_ELSE(GColorVividCerulean, GColorWhite);
   graphics_context_set_stroke_color(ctx, draw_color);
   graphics_context_set_stroke_width(ctx, stroke_width);
   
@@ -190,7 +190,7 @@ static void draw_star_points(GContext *ctx, GPoint center, int size, int frame) 
   int twinkle_phase = frame % 4;
   if (twinkle_phase == 0) return;
   
-  GColor star_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorBlack);
+  GColor star_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorWhite);
   graphics_context_set_stroke_color(ctx, star_color);
   graphics_context_set_stroke_width(ctx, 1);
   
