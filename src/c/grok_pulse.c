@@ -11,8 +11,9 @@
  * - Electric blue on color displays, black on B&W
  */
 
-#define NUM_FRAMES 12
-#define ANIMATION_INTERVAL_MS 80
+#define NUM_FRAMES 14
+#define ANIMATION_INTERVAL_MS 120
+#define DOT_GRID_SIZE 3
 
 // Individual pulse layer instance
 struct GrokPulseLayer {
@@ -128,98 +129,55 @@ bool grok_pulse_is_animating(GrokPulseLayer *pulse) {
   return pulse ? pulse->is_animating : false;
 }
 
-// Draw a stylized "X" with pulsing effect - represents xAI's logo
-static void draw_grok_x(GContext *ctx, GPoint center, int size, int frame) {
-  // Calculate pulse factor (0.0 to 1.0 based on frame)
-  // Using a smooth sine-like pulse
-  int pulse_offset = (frame < NUM_FRAMES/2) ? frame : (NUM_FRAMES - frame);
-  int pulse_factor = pulse_offset * 2;  // 0 to NUM_FRAMES range
-  
-  // Base dimensions
-  int arm_length = size / 2;
-  int inner_gap = size / 6 + (pulse_factor * size) / (NUM_FRAMES * 8);
-  
-  // Calculate stroke width based on size
-  int stroke_width = (size > 40) ? 3 : 2;
-  
-  // Color - electric blue on color displays, black on B&W
-  GColor draw_color = PBL_IF_COLOR_ELSE(GColorVividCerulean, GColorWhite);
-  graphics_context_set_stroke_color(ctx, draw_color);
-  graphics_context_set_stroke_width(ctx, stroke_width);
-  
-  // Draw the X shape with gap in center for "eye" effect
-  // Top-left to center-ish
-  GPoint tl_outer = GPoint(center.x - arm_length, center.y - arm_length);
-  GPoint tl_inner = GPoint(center.x - inner_gap, center.y - inner_gap);
-  graphics_draw_line(ctx, tl_outer, tl_inner);
-  
-  // Top-right to center-ish
-  GPoint tr_outer = GPoint(center.x + arm_length, center.y - arm_length);
-  GPoint tr_inner = GPoint(center.x + inner_gap, center.y - inner_gap);
-  graphics_draw_line(ctx, tr_outer, tr_inner);
-  
-  // Bottom-left to center-ish
-  GPoint bl_outer = GPoint(center.x - arm_length, center.y + arm_length);
-  GPoint bl_inner = GPoint(center.x - inner_gap, center.y + inner_gap);
-  graphics_draw_line(ctx, bl_outer, bl_inner);
-  
-  // Bottom-right to center-ish
-  GPoint br_outer = GPoint(center.x + arm_length, center.y + arm_length);
-  GPoint br_inner = GPoint(center.x + inner_gap, center.y + inner_gap);
-  graphics_draw_line(ctx, br_outer, br_inner);
-  
-  // Draw pulsing center dot (the "eye")
-  int dot_radius = 2 + (pulse_factor * 2) / NUM_FRAMES;
-  graphics_context_set_fill_color(ctx, draw_color);
-  graphics_fill_circle(ctx, center, dot_radius);
-  
-  // Draw outer glow ring on color displays during animation
-#ifdef PBL_COLOR
-  if (pulse_factor > NUM_FRAMES / 4) {
-    int ring_radius = inner_gap + 2;
-    graphics_context_set_stroke_width(ctx, 1);
-    graphics_context_set_stroke_color(ctx, GColorPictonBlue);
-    graphics_draw_circle(ctx, center, ring_radius);
-  }
-#endif
-}
+// Draw a 3x3 dot matrix grid with scattered wave animation
+static void draw_dot_matrix(GContext *ctx, GPoint center, int size, int frame) {
+  // Snake spiral from top-right, counter-clockwise, inward to center
+  // Path: [0,2] [0,1] [0,0] [1,0] [2,0] [2,1] [2,2] [1,2] [1,1]
+  //          0     1     2     3     4     5     6     7     8
+  static const int phase_map[DOT_GRID_SIZE][DOT_GRID_SIZE] = {
+    {2, 1, 0},
+    {3, 8, 7},
+    {4, 5, 6}
+  };
 
-// Draw radiating star points around the X
-static void draw_star_points(GContext *ctx, GPoint center, int size, int frame) {
-  // Only draw star points during certain frames for twinkling effect
-  int twinkle_phase = frame % 4;
-  if (twinkle_phase == 0) return;
-  
-  GColor star_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorWhite);
-  graphics_context_set_stroke_color(ctx, star_color);
-  graphics_context_set_stroke_width(ctx, 1);
-  
-  int ray_length = size / 4;
-  int ray_offset = size / 2 + 4;
-  
-  // Draw cardinal direction rays (N, E, S, W)
-  // Only some rays based on twinkle phase
-  if (twinkle_phase >= 1) {
-    // North ray
-    graphics_draw_line(ctx, 
-      GPoint(center.x, center.y - ray_offset),
-      GPoint(center.x, center.y - ray_offset - ray_length));
-  }
-  if (twinkle_phase >= 2) {
-    // East ray
-    graphics_draw_line(ctx,
-      GPoint(center.x + ray_offset, center.y),
-      GPoint(center.x + ray_offset + ray_length, center.y));
-    // West ray
-    graphics_draw_line(ctx,
-      GPoint(center.x - ray_offset, center.y),
-      GPoint(center.x - ray_offset - ray_length, center.y));
-  }
-  if (twinkle_phase >= 3) {
-    // South ray
-    graphics_draw_line(ctx,
-      GPoint(center.x, center.y + ray_offset),
-      GPoint(center.x, center.y + ray_offset + ray_length));
+  // Dot sizing based on overall size
+  int base_radius = (size > 40) ? 4 : 2;
+  int active_radius = base_radius + ((size > 40) ? 2 : 1);
+  int spacing = size / (DOT_GRID_SIZE + 1);
+
+  // Grid offset to center the 3x3 grid
+  int grid_offset = spacing * (DOT_GRID_SIZE - 1) / 2;
+
+  // Colors
+  GColor active_color = PBL_IF_COLOR_ELSE(GColorVividCerulean, GColorWhite);
+  GColor dim_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorLightGray);
+
+  for (int row = 0; row < DOT_GRID_SIZE; row++) {
+    for (int col = 0; col < DOT_GRID_SIZE; col++) {
+      int dot_phase = phase_map[row][col];
+      int active_level = (frame - dot_phase + NUM_FRAMES) % NUM_FRAMES;
+
+      GPoint dot_center = GPoint(
+        center.x - grid_offset + col * spacing,
+        center.y - grid_offset + row * spacing
+      );
+
+      if (active_level == 0) {
+        // Peak: bright and large
+        graphics_context_set_fill_color(ctx, active_color);
+        graphics_fill_circle(ctx, dot_center, active_radius);
+      } else if (active_level == 1) {
+        // Fading: medium brightness, base size
+        GColor fade_color = PBL_IF_COLOR_ELSE(GColorPictonBlue, GColorWhite);
+        graphics_context_set_fill_color(ctx, fade_color);
+        graphics_fill_circle(ctx, dot_center, base_radius);
+      } else if (active_level == 2) {
+        // Fading out: dim, base size
+        graphics_context_set_fill_color(ctx, dim_color);
+        graphics_fill_circle(ctx, dot_center, base_radius);
+      }
+      // active_level >= 3: dot not drawn (empty)
+    }
   }
 }
 
@@ -235,13 +193,8 @@ static void update_proc(Layer *layer, GContext *ctx) {
   // Determine size based on pulse size setting
   int draw_size = (pulse->size == GROK_PULSE_SMALL) ? 20 : 50;
   
-  // Draw the Grok X symbol with pulse effect
-  draw_grok_x(ctx, center, draw_size, pulse->frame_index);
-  
-  // Draw twinkling star points for large size
-  if (pulse->size == GROK_PULSE_LARGE) {
-    draw_star_points(ctx, center, draw_size, pulse->frame_index);
-  }
+  // Draw dot matrix grid with wave animation
+  draw_dot_matrix(ctx, center, draw_size, pulse->frame_index);
 }
 
 static void next_frame_handler(void *context) {

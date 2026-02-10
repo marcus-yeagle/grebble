@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **"xAI" attribution label**: Grok response bubbles now show a subtle "xAI" label at the bottom-right
 - **RSVP Reader**: New rapid serial visual presentation mode for reading Grok responses word-by-word on the watch
   - Configurable WPM (150–800), words per chunk (1–3), and punctuation pausing
   - Controls: SELECT to pause/resume, UP/DOWN to skip backward/forward, BACK to exit
@@ -15,7 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Error callbacks on `sendAppMessage()` calls for better failure diagnostics
 
 ### Changed
-- **xAI defaults**: Updated default endpoint to `https://api.x.ai/v1/responses` and default model to `grok-4-1-fast`
+- **Loading animation**: Replaced the pulsing "X" logo with a 3×3 dot matrix grid that animates in a snake-spiral wave pattern; idle state now shows an empty frame (no dots)
+- **Default model**: Changed from `grok-4-1-fast` to `grok-4-fast`; model migration updated accordingly
+- **Animation timing**: Increased frame interval from 80 ms to 120 ms (14 frames, up from 12) for a smoother, less frenetic pulse
+- **xAI defaults**: Updated default endpoint to `https://api.x.ai/v1/responses` and default model to `grok-4-fast`
 - **Web search integration**: Switched from deprecated `search_parameters` to Responses API Agent Tools (`web_search`)
 - **Removed `x_search` tool**: X/Twitter search added 2–5s of latency per request and was rarely useful for a smartwatch chatbot; only `web_search` is now sent
 

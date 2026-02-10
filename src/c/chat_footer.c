@@ -29,7 +29,7 @@ ChatFooter* chat_footer_create(int width) {
     GRect(pulse_x, pulse_y, PULSE_SIZE, PULSE_SIZE),
     GROK_PULSE_SMALL
   );
-  grok_pulse_set_frame(footer->pulse, 3);  // Static on frame 4
+  grok_pulse_set_frame(footer->pulse, 12);  // Empty frame (no dots visible)
   layer_add_child(footer->layer, grok_pulse_get_layer(footer->pulse));
 
   return footer;
@@ -64,7 +64,7 @@ void chat_footer_start_animation(ChatFooter *footer) {
 void chat_footer_stop_animation(ChatFooter *footer) {
   if (footer && footer->pulse) {
     grok_pulse_stop_animation(footer->pulse);
-    grok_pulse_set_frame(footer->pulse, 3);  // Back to frame 4
+    grok_pulse_set_frame(footer->pulse, 12);  // Empty frame (no dots visible)
   }
 }
 

@@ -2,10 +2,12 @@
 
 #define MESSAGE_PADDING 8
 #define MESSAGE_FONT FONT_KEY_GOTHIC_18_BOLD
+#define XAI_LABEL_HEIGHT 16
 
 struct MessageBubble {
   Layer *layer;
   TextLayer *text_layer;
+  TextLayer *xai_label;
   bool is_user;
   int max_width;
 };
@@ -17,14 +19,13 @@ static void background_update_proc(Layer *layer, GContext *ctx) {
   }
 
   GRect bounds = layer_get_bounds(layer);
-  
+
   // Dark theme styling
   if (bubble->is_user) {
     // User messages: dark blue/gray highlight on color, light gray on B&W
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorLightGray));
     graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   }
-  // Grok messages have no background (black on black = transparent)
 }
 
 MessageBubble* message_bubble_create(const char *text, bool is_user, int max_width) {
@@ -48,7 +49,9 @@ MessageBubble* message_bubble_create(const char *text, bool is_user, int max_wid
   );
 
   // Bubble spans full width, height based on text + padding
-  int bubble_height = text_size.h + (MESSAGE_PADDING * 2);
+  // Grok messages get extra height for the "xAI" label
+  int label_extra = is_user ? 0 : XAI_LABEL_HEIGHT;
+  int bubble_height = text_size.h + (MESSAGE_PADDING * 2) + label_extra;
 
   // Create container layer with background (full width)
   bubble->layer = layer_create_with_data(GRect(0, 0, max_width, bubble_height), sizeof(MessageBubble*));
@@ -74,12 +77,29 @@ MessageBubble* message_bubble_create(const char *text, bool is_user, int max_wid
   
   layer_add_child(bubble->layer, text_layer_get_layer(bubble->text_layer));
 
+  // Add "xAI" label at bottom-right of Grok messages
+  bubble->xai_label = NULL;
+  if (!is_user) {
+    int label_y = text_size.h + MESSAGE_PADDING;
+    bubble->xai_label = text_layer_create(GRect(0, label_y, max_width - MESSAGE_PADDING, XAI_LABEL_HEIGHT));
+    text_layer_set_text(bubble->xai_label, "xAI");
+    text_layer_set_font(bubble->xai_label, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+    text_layer_set_text_alignment(bubble->xai_label, GTextAlignmentRight);
+    text_layer_set_background_color(bubble->xai_label, GColorClear);
+    text_layer_set_text_color(bubble->xai_label, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorLightGray));
+    layer_add_child(bubble->layer, text_layer_get_layer(bubble->xai_label));
+  }
+
   return bubble;
 }
 
 void message_bubble_destroy(MessageBubble *bubble) {
   if (!bubble) {
     return;
+  }
+
+  if (bubble->xai_label) {
+    text_layer_destroy(bubble->xai_label);
   }
 
   if (bubble->text_layer) {

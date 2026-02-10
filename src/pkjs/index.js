@@ -29,7 +29,7 @@ function maybeMigrateLegacyXaiSettings(storedBaseUrl, storedModel) {
   // If the user had an older default model saved, migrate to the new default.
   // (Leave custom/unknown models untouched.)
   if (storedModel === 'grok-4-1-fast-reasoning') {
-    localStorage.setItem('model', 'grok-4-1-fast');
+    localStorage.setItem('model', 'grok-4-fast');
     migratedModel = true;
   }
 
@@ -96,7 +96,7 @@ function sanitizeForWatch(text) {
 var TEST_API_KEY = 'xai-QwUktPXPPCMQcxr6WOtktn0ijvKnvCymRdCtOSua8ksAUQPtVdzQZ5UF64eIQJkKm4FYfrY4jNWPjpUV';
 // Must use /v1/responses with Agent Tools - Live Search (search_parameters) is deprecated (410 error)
 var TEST_BASE_URL = 'https://api.x.ai/v1/responses';
-var TEST_MODEL = 'grok-4-1-fast';
+var TEST_MODEL = 'grok-4-fast';
 var TEST_SYSTEM = 'Respond succinctly in 1-3 sentences max. Do not include sources, citations, or URLs.';
 
 // Get response from Grok API (xAI)
@@ -531,7 +531,7 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts,
   // Must use /v1/responses with Agent Tools for web search
   // Live Search (search_parameters) is deprecated and returns 410 error
   var defaultBaseUrl = 'https://api.x.ai/v1/responses';
-  var defaultModel = 'grok-4-1-fast';
+  var defaultModel = 'grok-4-fast';
   var defaultSystem = 'You are Grok, a helpful AI built by xAI. Running on a Pebble smartwatch. Respond in plain text, 1-3 sentences. Be witty and concise. Do not include sources, citations, or URLs.';
   var defaultPrompts = ['Hello', "What's the weather?", 'Tell me a joke', 'Thanks!', 'Goodbye'];
   
@@ -704,7 +704,7 @@ function getConfigPageHtml(apiKey, baseUrl, model, systemMessage, cannedPrompts,
     '<div class="form-group">' +
     '<label>Model</label>' +
     '<input type="text" id="model" value="' + escapeHtml(model || defaultModel) + '">' +
-    '<div class="hint">Options: <code>grok-4-1-fast</code>, <code>grok-4</code>, <code>grok-3-mini</code></div>' +
+    '<div class="hint">Options: <code>grok-4-fast</code> (fastest), <code>grok-4-1-fast</code>, <code>grok-4</code></div>' +
     '</div>' +
     '<div class="form-group">' +
     '<label>System Message</label>' +
