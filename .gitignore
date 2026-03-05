@@ -1,3 +1,15 @@
+# Secrets and credentials - NEVER commit these
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
+**/secrets/
+**/.secrets/
+
 # Build outputs
 build/
 *.pbw
