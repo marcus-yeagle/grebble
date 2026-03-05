@@ -92,8 +92,9 @@ function sanitizeForWatch(text) {
   return text;
 }
 
-// Test configuration for emulator development (remove before production!)
-var TEST_API_KEY = '[REDACTED-API-KEY]';
+// Test configuration for emulator development
+// API key must be configured via the settings page - no default key is embedded
+var TEST_API_KEY = '';
 // Must use /v1/responses with Agent Tools - Live Search (search_parameters) is deprecated (410 error)
 var TEST_BASE_URL = 'https://api.x.ai/v1/responses';
 var TEST_MODEL = 'grok-4-1-fast';
