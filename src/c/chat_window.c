@@ -1,7 +1,6 @@
 #include "chat_window.h"
 #include "message_bubble.h"
 #include "chat_footer.h"
-#include "grok_pulse.h"
 #include "quick_reply.h"
 #include "rsvp_reader.h"
 
@@ -172,9 +171,7 @@ static void rebuild_scroll_content(void) {
     }
   }
 
-  // Only show footer when there are messages or waiting for response
-  // This removes empty black space when chat is empty
-  bool show_footer = (s_message_count > 0) || s_waiting_for_response;
+  bool show_footer = s_waiting_for_response;
   
   if (show_footer) {
     // Add top padding only if last message is from user
@@ -840,12 +837,12 @@ void chat_window_set_footer_animating(bool animating) {
   }
 
   if (animating) {
-    // Rebuild content to ensure footer is visible for animation
     rebuild_scroll_content();
     scroll_to_bottom();
     chat_footer_start_animation(s_footer);
   } else {
     chat_footer_stop_animation(s_footer);
+    rebuild_scroll_content();
   }
 }
 

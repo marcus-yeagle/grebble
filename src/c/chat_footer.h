@@ -4,7 +4,7 @@
 /**
  * Chat Footer Component
  *
- * Displays a small Grok pulse icon at the bottom of the chat conversation.
+ * Displays a dot-snake G loader at the bottom of the chat conversation.
  * Shows animation while waiting for response.
  * Dark theme styling.
  */
